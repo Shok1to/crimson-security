@@ -17,8 +17,6 @@ export const site = {
   },
   emails: {
     info: 'info@crimsonsecurityinc.ca',
-    sales: 'sales@crimsonsecurityinc.ca',
-    support: 'support@crimsonsecurityinc.ca',
   },
   address: {
     street: '325 Front St. W., 4th Floor',

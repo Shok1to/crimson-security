@@ -14,7 +14,7 @@ npm run build && npm start
 | --- | --- | --- |
 | Contact delivery | `app/api/contact/route.ts` | **Placeholder.** Validates and screens bots, but does not send the message anywhere. Add an email/CRM call at the `TODO`. |
 | Site URL | `NEXT_PUBLIC_SITE_URL` (Vercel env) | Used for canonical, OG and sitemap URLs. Falls back to Vercel's production URL, then localhost. |
-| Contact details | `lib/site.ts` | Phone (1-800-123-4567), info@ / sales@ / support@crimsonsecurityinc.ca, the Toronto address and the four locations live here and feed the top call bar, contact section, footer, privacy page and JSON-LD. **Confirm the phone number and mailboxes are live before launch.** |
+| Contact details | `lib/site.ts` | Phone (1-800-123-4567), info@crimsonsecurityinc.ca, the Toronto address and the four locations live here and feed the top call bar, contact section, footer, privacy page and JSON-LD. **Confirm the phone number and mailboxes are live before launch.** |
 | Privacy policy | `app/privacy/page.tsx` | Draft that describes only what the site does today. Have counsel review it. |
 
 ## Where things live
