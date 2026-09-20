@@ -1,0 +1,236 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* ---- Theme variables (RGB channels so Tailwind opacity modifiers keep working) ---- */
+  :root {
+    color-scheme: dark;
+
+    --ink-950: 10 10 10;
+    --ink-900: 13 13 13;
+    --ink-800: 20 20 20;
+    --ink-700: 26 26 26;
+    --ink-600: 35 35 35;
+    --ink-500: 46 46 46;
+
+    --silver-50: 254 253 253;
+    --silver-100: 243 243 243;
+    --silver-200: 231 230 230;
+    --silver-300: 198 198 197;
+    --silver-400: 163 165 169;
+    --silver-500: 138 141 147;
+    --silver-600: 75 77 82;
+
+    --edge: 255 255 255;
+    --crimson-300: 255 75 51;
+
+    --card-from: rgb(26 26 26 / 0.9);
+    --card-to: rgb(17 17 17 / 0.9);
+    --rim-1: rgba(254, 253, 253, 0.28);
+    --rim-2: rgba(138, 141, 147, 0.1);
+    --rim-3: rgba(198, 198, 197, 0.22);
+
+    --shadow-card: 0 30px 80px -30px rgba(0, 0, 0, 0.9);
+    --shadow-sm: none;
+    --shadow-glow: 0 0 0 1px rgba(227, 34, 15, 0.55), 0 24px 60px -24px rgba(227, 34, 15, 0.55),
+      0 8px 24px -8px rgba(0, 0, 0, 0.8);
+
+    --trace-o: 0.14;
+    --dot-o: 0.5;
+  }
+
+  /* Light sections: the neutral scales invert, so the same utility classes
+     (text-silver-50, bg-ink-800, border-edge/10 …) read correctly on white. */
+  .theme-light {
+    color-scheme: light;
+
+    --ink-950: 244 244 246; /* alternate section background */
+    --ink-900: 255 255 255;
+    --ink-800: 241 241 243;
+    --ink-700: 234 234 237;
+    --ink-600: 221 221 225;
+    --ink-500: 205 205 210;
+
+    --silver-50: 17 17 19;
+    --silver-100: 27 27 30;
+    --silver-200: 42 42 46;
+    --silver-300: 74 74 80;
+    --silver-400: 98 98 106;
+    --silver-500: 107 107 115;
+    --silver-600: 165 165 173;
+
+    --edge: 13 13 13;
+    --crimson-300: 185 13 11;
+
+    --card-from: #ffffff;
+    --card-to: #ffffff;
+    --rim-1: rgba(17, 17, 19, 0.12);
+    --rim-2: rgba(17, 17, 19, 0.06);
+    --rim-3: rgba(17, 17, 19, 0.1);
+
+    --shadow-card: 0 24px 60px -28px rgba(20, 20, 30, 0.3), 0 2px 6px rgba(20, 20, 30, 0.05);
+    --shadow-sm: 0 1px 2px rgba(16, 16, 20, 0.05), 0 10px 28px -14px rgba(16, 16, 20, 0.14);
+    --shadow-glow: 0 0 0 1px rgba(196, 16, 15, 0.55), 0 22px 50px -22px rgba(227, 34, 15, 0.45),
+      0 2px 6px rgba(20, 20, 30, 0.06);
+
+    --trace-o: 0.1;
+    --dot-o: 0.35;
+  }
+
+  /* Vivid crimson band: light text, nothing else changes. */
+  .theme-crimson {
+    --silver-50: 255 255 255;
+    --silver-100: 255 255 255;
+    --silver-200: 255 245 243;
+    --silver-300: 255 232 228;
+    --edge: 255 255 255;
+  }
+
+  html {
+    background-color: #0d0d0d;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Smooth anchor scrolling only for people who haven't asked for less motion. */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  body {
+    @apply bg-ink-900 font-sans text-silver-100 antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  ::selection {
+    background: rgba(227, 34, 15, 0.55);
+    color: #fff;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--crimson-300));
+    outline-offset: 3px;
+    border-radius: 4px;
+  }
+
+  section[id] {
+    scroll-margin-top: 4.5rem;
+  }
+}
+
+@layer components {
+  /* Crimson gradient for large headline accents & stat numbers. Brightest end of the
+     logo range so it holds >= 3:1 against the charcoal base at display sizes. */
+  .text-crimson-gradient {
+    background-image: linear-gradient(100deg, #e3220f 0%, #ff4b33 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .theme-light .text-crimson-gradient {
+    background-image: linear-gradient(100deg, #b30a0c 0%, #e3220f 100%);
+  }
+  .theme-crimson .text-crimson-gradient {
+    background-image: none;
+    color: #fff;
+    -webkit-text-fill-color: #fff;
+  }
+
+  /* Metallic silver hairline border, echoing the shield's rim. */
+  .silver-border {
+    position: relative;
+  }
+  .silver-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(160deg, var(--rim-1), var(--rim-2) 40%, var(--rim-3));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .card-surface {
+    background: linear-gradient(180deg, var(--card-from), var(--card-to));
+  }
+
+  .section-label {
+    @apply inline-flex items-center gap-3 font-display text-xs font-semibold uppercase tracking-[0.28em] text-crimson-300;
+  }
+
+  /* Small maple-leaf list marker (mirrors the divider glyph under the wordmark). */
+  .leaf-list > li {
+    position: relative;
+    padding-left: 1.35rem;
+  }
+  .leaf-list > li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0.42em;
+    width: 0.8rem;
+    height: 0.8rem;
+    background: #e3220f;
+    -webkit-mask: url('/maple-leaf.svg') center / contain no-repeat;
+    mask: url('/maple-leaf.svg') center / contain no-repeat;
+  }
+}
+
+/* Service-card illustrations: motion is parked until the card is hovered. */
+@keyframes svc-scan {
+  from { transform: translateX(-110px); }
+  to { transform: translateX(120px); }
+}
+@keyframes svc-dash {
+  to { stroke-dashoffset: -26; }
+}
+@keyframes svc-pulse {
+  0% { transform: scale(1); opacity: 0.7; }
+  80%, 100% { transform: scale(2.3); opacity: 0; }
+}
+/* negative delay = starts (and parks) mid-sweep, so the resting frame matches the artwork */
+.svc-scan { animation: svc-scan 2.6s ease-in-out -1.3s infinite alternate; }
+.svc-dash { animation: svc-dash 1.1s linear infinite; }
+.svc-pulse { animation: svc-pulse 1.8s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+/* Must come after the `animation` shorthands above, which would otherwise reset play-state. */
+.svc-anim { animation-play-state: paused; }
+.group:hover .svc-anim { animation-play-state: running; }
+
+/* Anything that moves on its own stops for reduced-motion users. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-glow-a,
+  .animate-glow-b,
+  .animate-float,
+  .animate-pixel,
+  .animate-sweep,
+  .animate-dash-flow,
+  .animate-ping-soft,
+  .animate-rise,
+  .svc-scan,
+  .svc-dash,
+  .svc-pulse {
+    animation: none !important;
+  }
+  .svc-art {
+    transform: none !important;
+  }
+  .hover-lift:hover {
+    transform: none !important;
+  }
+}
+
+.hover-lift {
+  transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease,
+    border-color 0.35s ease;
+}
+.hover-lift:hover {
+  transform: translate3d(0, -6px, 0);
+}
