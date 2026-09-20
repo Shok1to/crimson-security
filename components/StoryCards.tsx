@@ -2,22 +2,28 @@ import { BadgeCheck, CalendarClock, UserCheck } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 /**
- * Illustrative "floating card" graphics for the numbered story. They show structure
- * and policy only — deliberately no invented findings, scores or client data.
- * Decorative: the same claims appear as real text beside each card.
+ * Illustrative "floating card" graphics for the numbered story. The scope and team cards show
+ * structure and policy only. The report card carries a *sample* prioritized checklist so
+ * visitors can see what the deliverable looks like — it is illustrative, not client data.
+ * Cards are decorative (aria-hidden) unless they contain content of their own.
  */
 
 function CardShell({
   title,
   children,
   floatDelay = 0,
+  decorative = true,
+  maxWidth = 'max-w-md',
 }: {
   title: string;
   children: ReactNode;
   floatDelay?: number;
+  /** Hide from assistive tech. Set false when the card holds real text. */
+  decorative?: boolean;
+  maxWidth?: string;
 }) {
   return (
-    <div aria-hidden="true" className="relative mx-auto w-full max-w-md">
+    <div aria-hidden={decorative || undefined} className={`relative mx-auto w-full ${maxWidth}`}>
       {/* offset back card for depth */}
       <div className="absolute inset-0 translate-x-3 translate-y-4 rotate-[3deg] rounded-2xl border border-crimson-500/25 bg-crimson-500/10" />
       <div className="animate-float" style={{ animationDelay: `${floatDelay}s` }}>
@@ -129,11 +135,23 @@ export function TeamCard() {
 
 /* 03 — Detailed Reporting ---------------------------------------------------- */
 
-const checklist: { priority: 'Critical' | 'High' | 'Medium'; width: string }[] = [
-  { priority: 'Critical', width: 'w-4/5' },
-  { priority: 'High', width: 'w-3/5' },
-  { priority: 'High', width: 'w-2/3' },
-  { priority: 'Medium', width: 'w-1/2' },
+const checklist: { priority: 'Critical' | 'High' | 'Medium'; text: string }[] = [
+  {
+    priority: 'Critical',
+    text: 'Mandate immediate deployment of Multi-Factor Authentication (MFA) across all administrative and remote-access accounts to mitigate active breach risks.',
+  },
+  {
+    priority: 'High',
+    text: 'Approve the requested capital expenditure budget to replace unsupported, end-of-life legacy servers housing sensitive data.',
+  },
+  {
+    priority: 'High',
+    text: 'Authorize mandatory company-wide phishing and security awareness training to address vulnerabilities discovered in the detailed IT audit.',
+  },
+  {
+    priority: 'Medium',
+    text: 'Review and officially sign off on the updated quarterly Disaster Recovery and Business Continuity policy.',
+  },
 ];
 
 const chipStyle = {
@@ -144,7 +162,7 @@ const chipStyle = {
 
 export function ReportCard() {
   return (
-    <CardShell title="assessment.report" floatDelay={-4}>
+    <CardShell title="assessment.report" floatDelay={-4} decorative={false} maxWidth="max-w-lg">
       <div className="flex gap-2">
         <span className="rounded-md bg-crimson-600/90 px-3 py-1.5 font-display text-xs font-semibold text-white">
           Executive
@@ -164,16 +182,24 @@ export function ReportCard() {
       <p className="mb-2 mt-6 font-display text-[0.65rem] uppercase tracking-[0.25em] text-silver-500">
         Prioritized checklist
       </p>
-      <ul className="space-y-2.5">
-        {checklist.map((item, i) => (
-          <li key={i} className="flex items-center gap-3">
-            <span className="h-4 w-4 shrink-0 rounded-[4px] border border-silver-500/60" />
-            <span className={`h-2 ${item.width} rounded bg-edge/10`} />
+      <ul className="space-y-4">
+        {checklist.map((item) => (
+          <li key={item.text} className="flex items-start gap-3">
             <span
-              className={`ml-auto rounded-full px-2.5 py-0.5 font-display text-[0.65rem] font-semibold tracking-wide ${chipStyle[item.priority]}`}
-            >
-              {item.priority}
-            </span>
+              aria-hidden="true"
+              className="mt-[0.2rem] h-4 w-4 shrink-0 rounded-[4px] border border-silver-500/60"
+            />
+            {/* Badge first in the DOM so it reads as "Critical: …"; sits to the right from sm up. */}
+            <div className="flex min-w-0 flex-1 flex-col items-start gap-1.5 sm:flex-row sm:gap-3">
+              <span
+                className={`shrink-0 rounded-full px-2.5 py-0.5 font-display text-[0.65rem] font-semibold tracking-wide sm:order-2 ${chipStyle[item.priority]}`}
+              >
+                {item.priority}
+              </span>
+              <p className="min-w-0 flex-1 text-[0.8rem] leading-snug text-silver-200 sm:order-1">
+                {item.text}
+              </p>
+            </div>
           </li>
         ))}
       </ul>
