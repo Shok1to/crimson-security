@@ -1,7 +1,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { services } from '@/lib/content';
-import { site } from '@/lib/site';
+import { addressCityLine, site } from '@/lib/site';
 import MapleLeaf from './MapleLeaf';
 
 const company = [
@@ -30,7 +30,9 @@ export default function Footer() {
                 className="h-14 w-14 object-contain"
               />
               <span className="flex flex-col leading-none">
-                <span className="text-crimson-gradient font-display text-2xl font-bold tracking-tight">Crimson</span>
+                <span className="text-crimson-gradient font-display text-2xl font-bold tracking-tight">
+                  Crimson
+                </span>
                 <span className="mt-1.5 font-display text-xs font-semibold uppercase tracking-[0.42em] text-silver-100">
                   Security
                 </span>
@@ -39,10 +41,24 @@ export default function Footer() {
             <p className="mt-5 max-w-xs text-sm leading-relaxed text-silver-400">
               {site.tagline}. Canadian cybersecurity assessment and consulting.
             </p>
+
+            <h2 className="mt-8 font-display text-xs font-semibold uppercase tracking-[0.25em] text-silver-200">
+              Locations
+            </h2>
+            <ul className="mt-4 space-y-2.5 text-sm text-silver-400">
+              {site.locations.map((place) => (
+                <li key={place} className="flex items-center gap-2.5">
+                  <MapleLeaf className="h-3 w-3 shrink-0 text-crimson-400" />
+                  {place}
+                </li>
+              ))}
+            </ul>
           </div>
 
           <nav aria-label="Services">
-            <h2 className="font-display text-xs font-semibold uppercase tracking-[0.25em] text-silver-200">Services</h2>
+            <h2 className="font-display text-xs font-semibold uppercase tracking-[0.25em] text-silver-200">
+              Services
+            </h2>
             <ul className="mt-5 space-y-3">
               {services.map((s) => (
                 <li key={s.id}>
@@ -55,7 +71,9 @@ export default function Footer() {
           </nav>
 
           <nav aria-label="Company">
-            <h2 className="font-display text-xs font-semibold uppercase tracking-[0.25em] text-silver-200">Company</h2>
+            <h2 className="font-display text-xs font-semibold uppercase tracking-[0.25em] text-silver-200">
+              Company
+            </h2>
             <ul className="mt-5 space-y-3">
               {company.map((l) => (
                 <li key={l.href}>
@@ -68,22 +86,41 @@ export default function Footer() {
           </nav>
 
           <div>
-            <h2 className="font-display text-xs font-semibold uppercase tracking-[0.25em] text-silver-200">Contact</h2>
-            <ul className="mt-5 space-y-3 text-sm text-silver-400">
-              {site.email && (
-                <li>
-                  <a href={`mailto:${site.email}`} className="transition-colors hover:text-white">
-                    {site.email}
-                  </a>
-                </li>
-              )}
-              <li>Support Mon–Fri, 9am–5pm</li>
-              <li>
-                <Link href="/#contact" className="font-semibold text-crimson-300 transition-colors hover:text-white">
-                  Send us a message →
-                </Link>
-              </li>
-            </ul>
+            <h2 className="font-display text-xs font-semibold uppercase tracking-[0.25em] text-silver-200">
+              Contact
+            </h2>
+            <div className="mt-5 space-y-5 text-sm text-silver-400">
+              <p>
+                Call us now
+                <br />
+                <a
+                  href={site.phone.href}
+                  className="font-display text-lg font-bold text-white transition-colors hover:text-crimson-300"
+                >
+                  {site.phone.display}
+                </a>
+              </p>
+              <ul className="space-y-2">
+                {Object.values(site.emails).map((email) => (
+                  <li key={email}>
+                    <a href={`mailto:${email}`} className="break-all transition-colors hover:text-white">
+                      {email}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+              <address className="not-italic leading-relaxed">
+                {site.address.street}
+                <br />
+                {addressCityLine}
+              </address>
+              <Link
+                href="/#contact"
+                className="inline-block font-semibold text-crimson-300 transition-colors hover:text-white"
+              >
+                Send us a message →
+              </Link>
+            </div>
           </div>
         </div>
 

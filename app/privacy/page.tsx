@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import LeafDivider from '@/components/LeafDivider';
+import { addressCityLine, site } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'Privacy Policy',
@@ -77,8 +78,15 @@ export default function PrivacyPage() {
         <h2 className={h2}>Your rights</h2>
         <p className={p}>
           You may ask to access the personal information we hold about you, ask us to correct it, or withdraw
-          your consent to our use of it, subject to legal and contractual restrictions. To make a request, use
-          the{' '}
+          your consent to our use of it, subject to legal and contractual restrictions. To make a request,
+          email{' '}
+          <a
+            href={`mailto:${site.emails.info}`}
+            className="text-crimson-300 underline underline-offset-4 hover:text-silver-50"
+          >
+            {site.emails.info}
+          </a>{' '}
+          or use the{' '}
           <Link
             href="/#contact"
             className="text-crimson-300 underline underline-offset-4 hover:text-silver-50"
@@ -96,6 +104,29 @@ export default function PrivacyPage() {
           </a>
           .
         </p>
+
+        <h2 className={h2}>Contact us</h2>
+        <address className={`${p} not-italic`}>
+          {site.name}
+          <br />
+          {site.address.street}
+          <br />
+          {addressCityLine}
+          <br />
+          <a
+            href={site.phone.href}
+            className="text-crimson-300 underline underline-offset-4 hover:text-silver-50"
+          >
+            {site.phone.display}
+          </a>
+          {' · '}
+          <a
+            href={`mailto:${site.emails.info}`}
+            className="text-crimson-300 underline underline-offset-4 hover:text-silver-50"
+          >
+            {site.emails.info}
+          </a>
+        </address>
 
         <h2 className={h2}>Changes to this policy</h2>
         <p className={p}>

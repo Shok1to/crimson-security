@@ -71,7 +71,16 @@ const jsonLd = {
   url: site.url,
   logo: `${site.url}/crimson-security-logo.png`,
   image: `${site.url}/opengraph-image.png`,
-  ...(site.email ? { email: site.email } : {}),
+  telephone: '+1-800-123-4567',
+  email: site.emails.info,
+  address: {
+    '@type': 'PostalAddress',
+    streetAddress: site.address.street,
+    addressLocality: site.address.locality,
+    addressRegion: site.address.regionCode,
+    postalCode: site.address.postalCode,
+    addressCountry: site.address.countryCode,
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
