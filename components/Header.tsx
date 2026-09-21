@@ -97,12 +97,6 @@ export default function Header() {
                 {link.label}
               </Link>
             ))}
-            <Link
-              href="/#contact"
-              className="rounded-md bg-crimson-button px-5 py-2.5 font-display text-sm font-semibold tracking-wide text-white shadow-crimson-cta transition-all duration-300 hover:bg-crimson-button-hover hover:shadow-crimson-cta-hover"
-            >
-              Get in Touch
-            </Link>
           </nav>
 
           <button
@@ -136,16 +130,9 @@ export default function Header() {
                 </li>
               ))}
             </ul>
-            <Link
-              href="/#contact"
-              onClick={() => setOpen(false)}
-              className="mt-5 block rounded-md bg-crimson-button py-3.5 text-center font-display text-base font-semibold text-white shadow-crimson-cta"
-            >
-              Get in Touch
-            </Link>
             <a
               href={site.phone.href}
-              className="mt-4 flex items-center justify-center gap-2 font-display text-sm font-semibold text-silver-200"
+              className="mt-5 flex items-center justify-center gap-2 font-display text-sm font-semibold text-silver-200"
             >
               <Phone className="h-4 w-4 text-crimson-400" aria-hidden="true" />
               Call us now: {site.phone.display}

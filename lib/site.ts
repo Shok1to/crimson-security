@@ -37,4 +37,5 @@ export const navLinks = [
   { label: 'Services', href: '/#services' },
   { label: 'Capabilities', href: '/#capabilities' },
   { label: 'Why Crimson', href: '/#why-crimson' },
+  { label: 'Contact', href: '/#contact' },
 ] as const;
