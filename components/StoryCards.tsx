@@ -1,9 +1,9 @@
-import { BadgeCheck, CalendarClock, UserCheck } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 /**
- * Illustrative "floating card" graphics for the numbered story. The scope and team cards show
- * structure and policy only. The report card carries a *sample* prioritized checklist so
+ * Illustrative "floating card" graphics for the numbered story. The scope and team cards are
+ * diagrams that *show* the claim (capped vs full coverage; certified people only) rather than
+ * repeat the text beside them. The report card carries a *sample* prioritized checklist so
  * visitors can see what the deliverable looks like — it is illustrative, not client data.
  * Cards are decorative (aria-hidden) unless they contain content of their own.
  */
@@ -45,90 +45,200 @@ function CardShell({
 
 /* 01 — No Limit Policy ------------------------------------------------------ */
 
-const scopeRows = [
-  ['Devices', 'No limit'],
-  ['Scans', 'No limit'],
-  ['Scan tooling', 'Multiple tools'],
-  ['Verification', 'Manual'],
-  ['Testing', 'Full-knowledge'],
-];
+const GRID_CELLS = 30; // 6 × 5
 
+/** A block of "devices": filled = scanned, dashed = never reached. */
+function CoverageGrid({ scanned }: { scanned: number }) {
+  return (
+    <div className="grid grid-cols-6 gap-1.5">
+      {Array.from({ length: GRID_CELLS }).map((_, i) => (
+        <span
+          key={i}
+          className={`aspect-square rounded-[3px] ${
+            i < scanned ? 'bg-crimson-500' : 'border border-dashed border-silver-500/60'
+          }`}
+        />
+      ))}
+    </div>
+  );
+}
+
+/** What a device or scan cap leaves behind, next to what no cap looks like. */
 export function ScopeCard() {
   return (
     <CardShell title="assessment.scope">
-      <ul className="divide-y divide-edge/5">
-        {scopeRows.map(([label, value]) => (
-          <li key={label} className="flex items-center justify-between py-3 text-sm">
-            <span className="text-silver-400">{label}</span>
-            <span className="inline-flex items-center gap-2 font-display font-semibold text-silver-50">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inset-0 rounded-full bg-crimson-400 animate-ping-soft" />
-                <span className="relative h-2 w-2 rounded-full bg-crimson-400" />
-              </span>
-              {value}
-            </span>
-          </li>
-        ))}
-      </ul>
+      <div className="grid grid-cols-2 gap-6">
+        <figure>
+          <figcaption className="mb-3 font-display text-[0.65rem] uppercase tracking-[0.25em] text-silver-500">
+            With a cap
+          </figcaption>
+          <CoverageGrid scanned={11} />
+        </figure>
+        <figure>
+          <figcaption className="mb-3 font-display text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-crimson-300">
+            No limit
+          </figcaption>
+          <CoverageGrid scanned={GRID_CELLS} />
+        </figure>
+      </div>
 
-      <div className="mt-5">
-        <p className="mb-2 font-display text-[0.65rem] uppercase tracking-[0.25em] text-silver-500">
-          Coverage
-        </p>
-        <div className="grid grid-cols-[repeat(16,minmax(0,1fr))] gap-1">
-          {Array.from({ length: 48 }).map((_, i) => (
-            <span
-              key={i}
-              className={`aspect-square rounded-[2px] bg-crimson-500 ${i % 11 === 3 ? 'animate-pixel' : ''}`}
-              style={{
-                opacity: 0.35 + ((i * 37) % 60) / 100,
-                animationDelay: `${(i % 7) * 0.4}s`,
-              }}
-            />
-          ))}
-        </div>
+      <div className="mt-5 flex items-center gap-6 border-t border-edge/10 pt-4 text-xs text-silver-400">
+        <span className="flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-[2px] bg-crimson-500" />
+          Scanned
+        </span>
+        <span className="flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-[2px] border border-dashed border-silver-500/70" />
+          Never reached
+        </span>
       </div>
     </CardShell>
   );
 }
 
-/* 02 — No Hacker Policy / Owner accessibility -------------------------------- */
+/* 02 — No Hacker Policy ------------------------------------------------------ */
 
-const teamRows = [
-  { icon: BadgeCheck, title: 'Technicians', sub: 'CISSP / GIAC certified only' },
-  { icon: UserCheck, title: 'Owner', sub: 'Present on assessments when possible' },
-  { icon: CalendarClock, title: 'Schedule', sub: 'Off-hours & weekends, no extra cost' },
+/** Simple person glyph: head + shoulders, centred on (cx, cy). */
+function Person({ cx, cy, className }: { cx: number; cy: number; className: string }) {
+  return (
+    <g className={className}>
+      <circle cx={cx} cy={cy - 6} r="6" />
+      <path d={`M${cx - 11} ${cy + 13} q0 -13 11 -13 q11 0 11 13 z`} />
+    </g>
+  );
+}
+
+const techs = [
+  { x: 64, cert: 'CISSP' },
+  { x: 144, cert: 'GIAC' },
+  { x: 224, cert: 'CISSP' },
 ];
 
+/** An engagement team: the owner oversees certified technicians; an uncertified person is left out. */
 export function TeamCard() {
+  const font = 'font-display';
   return (
     <CardShell title="your.engagement" floatDelay={-2}>
-      <ul className="space-y-3">
-        {teamRows.map(({ icon: Icon, title, sub }) => (
-          <li
-            key={title}
-            className="flex items-center gap-4 rounded-xl border border-edge/5 bg-edge/[0.02] p-3.5"
-          >
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg border border-silver-400/30 bg-ink-800 text-silver-200">
-              <Icon className="h-5 w-5" strokeWidth={1.6} />
-            </span>
-            <span>
-              <span className="block font-display text-sm font-semibold text-silver-50">{title}</span>
-              <span className="block text-sm text-silver-400">{sub}</span>
-            </span>
-          </li>
+      <svg viewBox="0 0 360 268" className={`h-auto w-full ${font}`} role="presentation" focusable="false">
+        {/* owner -> technicians */}
+        {techs.map((t) => (
+          <path
+            key={`o-${t.x}`}
+            d={`M180 66 V94 H${t.x} V119`}
+            className="fill-none stroke-crimson-500"
+            strokeOpacity="0.55"
+            strokeDasharray="3 4"
+          />
         ))}
-      </ul>
-      <div className="mt-5 flex flex-wrap gap-2">
-        {['CISSP', 'GIAC'].map((c) => (
-          <span
-            key={c}
-            className="rounded-full border border-silver-400/40 px-3.5 py-1 font-display text-xs font-semibold tracking-[0.2em] text-silver-200"
-          >
-            {c}
-          </span>
+        {/* technicians -> your systems */}
+        {techs.map((t) => (
+          <path
+            key={`s-${t.x}`}
+            d={`M${t.x} 191 V206 H180`}
+            className="fill-none stroke-silver-500"
+            strokeOpacity="0.5"
+          />
         ))}
-      </div>
+        <path d="M180 206 V217" className="fill-none stroke-silver-500" strokeOpacity="0.5" />
+
+        {/* owner */}
+        <circle cx="180" cy="38" r="27" className="fill-ink-800 stroke-crimson-500" strokeWidth="1.6" />
+        <Person cx={180} cy={38} className="fill-crimson-500" />
+        <text x="216" y="43" className="fill-silver-300" fontSize="12" fontWeight="600">
+          Owner
+        </text>
+
+        {/* certified technicians */}
+        {techs.map((t) => (
+          <g key={t.x}>
+            <circle cx={t.x} cy="138" r="19" className="fill-ink-800 stroke-silver-500" strokeOpacity="0.7" />
+            <Person cx={t.x} cy={138} className="fill-silver-300" />
+            <circle cx={t.x + 15} cy="153" r="7.5" className="fill-crimson-500" />
+            <path
+              d={`M${t.x + 11.5} 153 l2.6 2.6 l4.6 -5`}
+              className="fill-none stroke-white"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <rect
+              x={t.x - 28}
+              y="170"
+              width="56"
+              height="20"
+              rx="10"
+              className="fill-ink-900 stroke-silver-500"
+              strokeOpacity="0.6"
+            />
+            <text
+              x={t.x}
+              y="184"
+              textAnchor="middle"
+              className="fill-silver-200"
+              fontSize="10.5"
+              fontWeight="600"
+              letterSpacing="0.8"
+            >
+              {t.cert}
+            </text>
+          </g>
+        ))}
+
+        {/* uncertified: shown, but left out */}
+        <circle
+          cx="304"
+          cy="138"
+          r="19"
+          className="fill-none stroke-silver-500"
+          strokeOpacity="0.6"
+          strokeDasharray="3 3"
+        />
+        <Person cx={304} cy={138} className="fill-silver-500 opacity-40" />
+        <circle cx="319" cy="153" r="7.5" className="fill-ink-900 stroke-crimson-500" />
+        <path
+          d="M316 150 l6 6 M322 150 l-6 6"
+          className="stroke-crimson-500"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+        />
+        <rect
+          x="262"
+          y="170"
+          width="84"
+          height="20"
+          rx="10"
+          className="fill-none stroke-silver-500"
+          strokeOpacity="0.5"
+          strokeDasharray="3 3"
+        />
+        <text
+          x="304"
+          y="184"
+          textAnchor="middle"
+          className="fill-silver-500"
+          fontSize="10.5"
+          fontWeight="600"
+          letterSpacing="0.6"
+        >
+          Not certified
+        </text>
+
+        {/* your systems */}
+        <path
+          d="M180 217 l22 7 v13 c0 12 -9 20 -22 25 c-13 -5 -22 -13 -22 -25 v-13 z"
+          className="fill-crimson-500"
+        />
+        <path
+          d="M170 240 l7 7 l13 -14"
+          className="fill-none stroke-white"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <text x="214" y="246" className="fill-silver-300" fontSize="12" fontWeight="600">
+          Your systems
+        </text>
+      </svg>
     </CardShell>
   );
 }

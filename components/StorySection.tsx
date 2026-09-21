@@ -8,7 +8,11 @@ const visuals = { scope: ScopeCard, team: TeamCard, report: ReportCard } as cons
 
 export default function StorySection() {
   return (
-    <section id="story" aria-labelledby="story-heading" className="theme-light relative overflow-hidden bg-ink-900 py-24 lg:py-32">
+    <section
+      id="story"
+      aria-labelledby="story-heading"
+      className="theme-light relative overflow-hidden bg-ink-900 py-24 lg:py-32"
+    >
       <CircuitTexture side="left" className="top-40 h-[620px] opacity-70" />
       <CircuitTexture side="right" className="bottom-24 hidden h-[620px] opacity-50 lg:block" />
 
@@ -36,7 +40,9 @@ export default function StorySection() {
                     <span className="text-crimson-gradient text-7xl font-bold leading-none tabular-nums sm:text-8xl">
                       {item.n}
                     </span>
-                    <span className="text-2xl font-medium text-silver-500">/ {String(story.length).padStart(2, '0')}</span>
+                    <span className="text-2xl font-medium text-silver-500">
+                      / {String(story.length).padStart(2, '0')}
+                    </span>
                   </Reveal>
 
                   <Reveal delay={0.08}>
@@ -49,10 +55,7 @@ export default function StorySection() {
                   </Reveal>
 
                   <Reveal delay={0.16}>
-                    <p className="mt-5 max-w-xl text-base leading-relaxed text-silver-300 sm:text-lg">
-                      {item.body}
-                    </p>
-                    <ul className="leaf-list mt-6 space-y-2.5 text-silver-200">
+                    <ul className="leaf-list mt-7 space-y-3 text-base text-silver-200 sm:text-lg">
                       {item.points.map((p) => (
                         <li key={p}>{p}</li>
                       ))}
