@@ -1,25 +1,25 @@
-import type { Metadata, Viewport } from 'next';
-import { Archivo, Inter } from 'next/font/google';
-import Footer from '@/components/Footer';
-import Header from '@/components/Header';
-import Providers from '@/components/Providers';
-import { site } from '@/lib/site';
-import './globals.css';
+import type { Metadata, Viewport } from "next"
+import { Archivo, Inter } from "next/font/google"
+import Footer from "@/components/Footer"
+import Header from "@/components/Header"
+import Providers from "@/components/Providers"
+import { site } from "@/lib/site"
+import "./globals.css"
 
 const display = Archivo({
-  subsets: ['latin'],
-  weight: ['500', '600', '700', '800'],
-  variable: '--font-display',
-  display: 'swap',
-});
+  subsets: ["latin"],
+  weight: ["500", "600", "700", "800"],
+  variable: "--font-display",
+  display: "swap",
+})
 
 const sans = Inter({
-  subsets: ['latin'],
-  variable: '--font-sans',
-  display: 'swap',
-});
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+})
 
-const title = `${site.name} — ${site.tagline}`;
+const title = `${site.name} — ${site.tagline}`
 
 export const metadata: Metadata = {
   metadataBase: new URL(site.url),
@@ -27,69 +27,75 @@ export const metadata: Metadata = {
   description: site.description,
   applicationName: site.name,
   keywords: [
-    'cybersecurity Canada',
-    'penetration testing',
-    'compliance assessment',
-    'PCI assessment',
-    'vulnerability scanning',
-    'SOC audit',
-    'incident response',
-    'forensic analysis',
-    'SIEM',
-    'vendor security management',
+    "cybersecurity Canada",
+    "penetration testing",
+    "compliance assessment",
+    "PCI assessment",
+    "vulnerability scanning",
+    "SOC audit",
+    "incident response",
+    "forensic analysis",
+    "SIEM",
+    "vendor security management",
   ],
-  alternates: { canonical: '/' },
+  alternates: { canonical: "/" },
   openGraph: {
-    type: 'website',
-    locale: 'en_CA',
+    type: "website",
+    locale: "en_CA",
     siteName: site.name,
     title,
     description: site.description,
-    url: '/',
+    url: "/",
   },
   twitter: {
-    card: 'summary_large_image',
+    card: "summary_large_image",
     title,
     description: site.description,
   },
   robots: { index: true, follow: true },
-};
+}
 
 export const viewport: Viewport = {
-  themeColor: '#0d0d0d',
-  colorScheme: 'dark',
-  width: 'device-width',
+  themeColor: "#0d0d0d",
+  colorScheme: "dark",
+  width: "device-width",
   initialScale: 1,
-};
+}
 
 const jsonLd = {
-  '@context': 'https://schema.org',
-  '@type': 'ProfessionalService',
+  "@context": "https://schema.org",
+  "@type": "ProfessionalService",
   name: site.name,
   slogan: site.tagline,
   description: site.description,
   url: site.url,
   logo: `${site.url}/crimson-security-logo.png`,
   image: `${site.url}/opengraph-image.png`,
-  telephone: '+1-800-123-4567',
+  telephone: "+1-800-123-4567",
   email: site.emails.info,
   address: {
-    '@type': 'PostalAddress',
+    "@type": "PostalAddress",
     streetAddress: site.address.street,
     addressLocality: site.address.locality,
     addressRegion: site.address.regionCode,
     postalCode: site.address.postalCode,
     addressCountry: site.address.countryCode,
   },
-};
+}
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="en-CA" className={`${display.variable} ${sans.variable}`}>
       <body>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+          }}
         />
         {/* Scroll reveals start hidden; without JS, show everything. */}
         <noscript>
@@ -110,5 +116,5 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </Providers>
       </body>
     </html>
-  );
+  )
 }

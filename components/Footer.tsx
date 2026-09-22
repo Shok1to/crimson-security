@@ -1,26 +1,30 @@
-import Image from 'next/image';
-import Link from 'next/link';
-import { services } from '@/lib/content';
-import { addressCityLine, site } from '@/lib/site';
-import MapleLeaf from './MapleLeaf';
+import Image from "next/image"
+import Link from "next/link"
+import { services } from "@/lib/content"
+import { addressCityLine, site } from "@/lib/site"
+import MapleLeaf from "./MapleLeaf"
 
 const company = [
-  { label: 'Capabilities', href: '/#capabilities' },
-  { label: 'Why Crimson', href: '/#why-crimson' },
-  { label: 'Contact', href: '/#contact' },
-  { label: 'Privacy Policy', href: '/privacy' },
-];
+  { label: "Capabilities", href: "/#capabilities" },
+  { label: "Why Crimson", href: "/#why-crimson" },
+  { label: "Contact", href: "/#contact" },
+  { label: "Privacy Policy", href: "/privacy" },
+]
 
 export default function Footer() {
-  const year = new Date().getFullYear();
-  const linkClass = 'text-sm text-silver-400 transition-colors hover:text-white';
+  const year = new Date().getFullYear()
+  const linkClass = "text-sm text-silver-400 transition-colors hover:text-white"
 
   return (
     <footer className="relative border-t border-edge/10 bg-ink-800">
       <div className="mx-auto max-w-7xl px-5 py-16 sm:px-8">
         <div className="grid gap-12 md:grid-cols-2 lg:grid-cols-[1.4fr_1.2fr_1fr_1fr]">
           <div>
-            <Link href="/" className="inline-flex items-center gap-3" aria-label="Crimson Security — home">
+            <Link
+              href="/"
+              className="inline-flex items-center gap-3"
+              aria-label="Crimson Security — home"
+            >
               <Image
                 src="/crimson-security-mark.png"
                 alt=""
@@ -90,7 +94,7 @@ export default function Footer() {
               Contact
             </h2>
             <div className="mt-5 space-y-5 text-sm text-silver-400">
-              <p>
+              {/* <p>
                 Call us now
                 <br />
                 <a
@@ -99,11 +103,14 @@ export default function Footer() {
                 >
                   {site.phone.display}
                 </a>
-              </p>
+              </p> */}
               <ul className="space-y-2">
                 {Object.values(site.emails).map((email) => (
                   <li key={email}>
-                    <a href={`mailto:${email}`} className="break-all transition-colors hover:text-white">
+                    <a
+                      href={`mailto:${email}`}
+                      className="break-all transition-colors hover:text-white"
+                    >
                       {email}
                     </a>
                   </li>
@@ -129,11 +136,14 @@ export default function Footer() {
             <MapleLeaf className="h-3.5 w-3.5 shrink-0 text-crimson-400" />
             <span>© {year} Crimson Security. All rights reserved.</span>
           </p>
-          <Link href="/privacy" className="text-sm text-silver-500 transition-colors hover:text-white">
+          <Link
+            href="/privacy"
+            className="text-sm text-silver-500 transition-colors hover:text-white"
+          >
             Privacy Policy
           </Link>
         </div>
       </div>
     </footer>
-  );
+  )
 }
