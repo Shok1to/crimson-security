@@ -6,7 +6,7 @@ import { addressCityLine, site } from '@/lib/site';
 export const metadata: Metadata = {
   title: 'Privacy Policy',
   description:
-    'How Crimson Security collects, uses and protects personal information submitted through this website.',
+    'How Crimson Security collects, uses, discloses and protects personal information submitted through this website, in line with Canadian privacy law (PIPEDA).',
   alternates: { canonical: '/privacy' },
 };
 

@@ -4,7 +4,7 @@ export const site = {
   name: "Crimson Security",
   tagline: "Practical Information Security",
   description:
-    "Crimson Security is a Canadian cybersecurity assessment and consulting firm offering compliance assessments, penetration testing, vulnerability scanning, SOC audits, incident response, forensics and SIEM — delivered by CISSP/GIAC-certified technicians.",
+    "Crimson Security is a Canadian cybersecurity firm offering compliance, penetration testing, monitoring and incident response by certified technicians.",
   /**
    * Set NEXT_PUBLIC_SITE_URL to the production domain. On Vercel we fall back to the
    * project's production URL automatically; locally we fall back to localhost.
