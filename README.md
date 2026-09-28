@@ -13,15 +13,15 @@ npm run build && npm start
 | Item | Where | Notes |
 | --- | --- | --- |
 | Chat assistant | `app/api/chat/route.ts` | Needs `ANTHROPIC_API_KEY` and `RESEND_API_KEY`. **`CHAT_ENABLED` defaults off** — set it to `true` to serve. Rate limiting is in-memory per instance (see the design doc); move to Redis if the endpoint draws traffic. |
-| Contact delivery | `app/api/contact/route.ts`, `lib/enquiry-delivery.ts` | Delivers via Resend. Requires `RESEND_API_KEY`; the route returns 500 when delivery fails rather than reporting false success. |
+| Contact delivery | `app/api/contact/route.ts`, `lib/enquiry-delivery.ts` | Delivers via Resend. Requires `RESEND_API_KEY`; the route returns 500 when delivery fails rather than reporting false success. **Not yet verified against the live Resend API — see issue #11.** |
+| Contact details | `lib/site.ts` | info@crimsonsecurityinc.ca, the Toronto address and the four locations live here and feed the contact section, footer, privacy page and JSON-LD. **Confirm the mailboxes are live before launch.** |
 | Site URL | `NEXT_PUBLIC_SITE_URL` (Vercel env) | Used for canonical, OG and sitemap URLs. Falls back to Vercel's production URL, then localhost. |
-| Contact details | `lib/site.ts` | Phone (1-800-123-4567), info@crimsonsecurityinc.ca, the Toronto address and the four locations live here and feed the top call bar, contact section, footer, privacy page and JSON-LD. **Confirm the phone number and mailboxes are live before launch.** |
 | Privacy policy | `app/privacy/page.tsx` | Draft that describes only what the site does today. Have counsel review it. |
 
 ## Where things live
 
 - `lib/content.ts` — all services, story blocks, tabs, stats and differentiators. Edit copy here.
-- `lib/site.ts` — name, description, URL, nav links, and all contact details (phone, emails, address, locations).
+- `lib/site.ts` — name, description, URL, nav links, and all contact details (emails, address, locations).
 - `tailwind.config.ts` — palette sampled from the logo (`crimson`, `silver`, `ink`).
 - `app/globals.css` — section themes. Neutral colours are CSS variables; add `theme-light` to a section to flip it to white/gray, `theme-crimson` for the crimson band, or nothing for dark. Page rhythm (SentinelOne-style): dark crimson hero → light story → light-gray services → dark capabilities → crimson stats → light differentiators → light-gray contact → dark footer.
 - `components/Reveal.tsx`, `CountUp.tsx` — scroll-triggered animation primitives (IntersectionObserver-based).

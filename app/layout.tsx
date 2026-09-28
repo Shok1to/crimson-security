@@ -4,6 +4,7 @@ import ChatWidget from "@/components/ChatWidget"
 import Footer from "@/components/Footer"
 import Header from "@/components/Header"
 import Providers from "@/components/Providers"
+import { services } from "@/lib/content"
 import { site } from "@/lib/site"
 import "./globals.css"
 
@@ -66,13 +67,13 @@ export const viewport: Viewport = {
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "ProfessionalService",
+  "@id": `${site.url}/#organization`,
   name: site.name,
   slogan: site.tagline,
   description: site.description,
   url: site.url,
   logo: `${site.url}/crimson-security-logo.png`,
   image: `${site.url}/opengraph-image.png`,
-  telephone: "+1-800-123-4567",
   email: site.emails.info,
   address: {
     "@type": "PostalAddress",
@@ -81,6 +82,19 @@ const jsonLd = {
     addressRegion: site.address.regionCode,
     postalCode: site.address.postalCode,
     addressCountry: site.address.countryCode,
+  },
+  areaServed: [site.address.country, ...site.locations],
+  hasOfferCatalog: {
+    "@type": "OfferCatalog",
+    name: "Cybersecurity Services",
+    itemListElement: services.map((service) => ({
+      "@type": "Offer",
+      itemOffered: {
+        "@type": "Service",
+        name: service.title,
+        description: service.summary,
+      },
+    })),
   },
 }
 

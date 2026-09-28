@@ -3,9 +3,9 @@
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, Phone, X } from "lucide-react"
+import { Menu, X } from "lucide-react"
 import { useEffect, useState } from "react"
-import { navLinks, site } from "@/lib/site"
+import { navLinks } from "@/lib/site"
 
 export default function Header() {
   const [scrolled, setScrolled] = useState(false)
@@ -29,32 +29,8 @@ export default function Header() {
 
   const solid = scrolled || open || !isHome
 
-  // The call bar only shows at the very top of the home page; it folds away once you scroll
-  // (or on other pages, where the header is already solid) so the sticky header stays compact.
-  const showBar = isHome && !scrolled
-
   return (
     <div className="fixed inset-x-0 top-0 z-50">
-      {/* <div
-        className={`overflow-hidden bg-crimson-600 text-white motion-safe:transition-[max-height] motion-safe:duration-300 ${
-          showBar ? 'max-h-10' : 'max-h-0'
-        }`}
-        aria-hidden={!showBar}
-      >
-        <div className="mx-auto flex h-9 max-w-7xl items-center justify-center px-5 sm:justify-end sm:px-8">
-          <a
-            href={site.phone.href}
-            tabIndex={showBar ? 0 : -1}
-            className="inline-flex items-center gap-2 font-display text-[0.8rem] font-semibold tracking-wide text-white/95 transition-colors hover:text-white"
-          >
-            <Phone className="h-3.5 w-3.5" strokeWidth={2.2} aria-hidden="true" />
-            <span>
-              Call us now: <span className="font-bold">{site.phone.display}</span>
-            </span>
-          </a>
-        </div>
-      </div> */}
-
       <header
         className={`relative transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300 ${
           solid
@@ -133,13 +109,6 @@ export default function Header() {
                 </li>
               ))}
             </ul>
-            {/* <a
-              href={site.phone.href}
-              className="mt-5 flex items-center justify-center gap-2 font-display text-sm font-semibold text-silver-200"
-            >
-              <Phone className="h-4 w-4 text-crimson-400" aria-hidden="true" />
-              Call us now: {site.phone.display}
-            </a> */}
           </nav>
         )}
       </header>
