@@ -56,8 +56,10 @@ describe('buildSystemPrompt', () => {
     const prompt = buildSystemPrompt();
     expect(prompt).toMatch(/plain prose/i);
     expect(prompt).toMatch(/never use markdown/i);
-    for (const syntax of [/\*\*bold\*\*/, /## headings/, /backticks/, /bullet lists/, /numbered lists/]) {
-      expect(prompt).toMatch(syntax);
+    // Each forbidden category by name, not by the punctuation used to describe
+    // it — the rule must keep covering all of them even as wording changes.
+    for (const category of [/bold/i, /italic/i, /heading/i, /backtick/i, /code fence/i, /bullet/i, /numbered list/i]) {
+      expect(prompt).toMatch(category);
     }
   });
 
@@ -66,8 +68,38 @@ describe('buildSystemPrompt', () => {
   it('restates the no-markdown rule after the knowledge base', () => {
     const prompt = buildSystemPrompt();
     const tail = prompt.slice(prompt.lastIndexOf('BEFORE YOU REPLY'));
-    expect(tail).toMatch(/no markdown/i);
+    expect(tail).toMatch(/plain prose/i);
+    expect(tail).toMatch(/bullet/i);
     expect(prompt.indexOf('Never use markdown')).toBeLessThan(prompt.lastIndexOf('BEFORE YOU REPLY'));
+  });
+
+  /**
+   * Models mirror the formatting of nearby context, so the blocks that forbid
+   * markdown must not themselves contain any — a bulleted list saying "never
+   * use bullets" works against itself, and naming the tokens by printing them
+   * is the same mistake in miniature.
+   *
+   * Only the instruction blocks are checked. The knowledge base between them
+   * is a data block and is bulleted by design; it is not adjacent to the point
+   * of generation the way these two are.
+   */
+  it('states its formatting rules without using the formatting they forbid', () => {
+    const parts = buildSystemPrompt().split('\n\n---\n\n');
+    const rules = parts[1];
+    const reminders = parts[parts.length - 1];
+
+    expect(rules).toMatch(/Never use markdown/);
+    expect(reminders).toMatch(/BEFORE YOU REPLY/);
+
+    for (const [label, block] of [
+      ['RULES', rules],
+      ['REMINDERS', reminders],
+    ] as const) {
+      expect(block, `${label} must not contain asterisks`).not.toMatch(/\*/);
+      expect(block, `${label} must not contain hash marks`).not.toMatch(/#/);
+      expect(block, `${label} must not contain backticks`).not.toMatch(/`/);
+      expect(block, `${label} must not start a line with a bullet dash`).not.toMatch(/^\s*-\s/m);
+    }
   });
 
   it('declines to reveal its own instructions', () => {
