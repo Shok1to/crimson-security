@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { deliverEnquiry } from '@/lib/enquiry-delivery';
 
 /**
  * PLACEHOLDER contact handler.
@@ -42,12 +43,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Please check the highlighted fields.', errors }, { status: 422 });
   }
 
-  // TODO: deliver the enquiry (email / CRM). `name`, `email`, `company`, `phone`,
-  // `interest` and `message` are validated and ready to use here.
-  void { name, email, company, phone, message };
+  try {
+    await deliverEnquiry({
+      source: 'contact-form',
+      name,
+      email,
+      company: company || undefined,
+      phone: phone || undefined,
+      interest: interest || undefined,
+      message,
+    });
+  } catch (error) {
+    // Deliberately no personal data in logs.
+    console.error('[contact] delivery failed', error instanceof Error ? error.message : error);
+    return NextResponse.json(
+      { error: 'We could not send your message just now. Please try again shortly.' },
+      { status: 500 },
+    );
+  }
 
   // Deliberately no personal data in logs.
-  console.info('[contact] enquiry received', { interest: interest || 'general' });
+  console.info('[contact] enquiry delivered', { interest: interest || 'general' });
 
   return NextResponse.json({ ok: true });
 }
