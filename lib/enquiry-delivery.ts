@@ -38,6 +38,18 @@ function renderBody(e: Enquiry): string {
   return lines.join('\n');
 }
 
+/**
+ * CR/LF has no place in an email subject. Both current callers already strip
+ * it, and they keep doing so — but this module is the shared boundary every
+ * enquiry passes through, and a third caller is already specified. Defending
+ * only at the call sites makes the invariant hold exactly as long as every
+ * future caller remembers, so it is enforced here too, at the point of use.
+ *
+ * Resend takes JSON and builds the message itself, so this cannot actually
+ * inject a header. It is defence in depth, and it is free.
+ */
+const subjectSafe = (value: string) => value.replace(/[\r\n]+/g, ' ');
+
 async function sendViaResend(e: Enquiry): Promise<void> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
@@ -54,7 +66,9 @@ async function sendViaResend(e: Enquiry): Promise<void> {
       from: process.env.ENQUIRY_FROM ?? 'website@crimsonsecurityinc.ca',
       to: [site.emails.info],
       reply_to: e.email,
-      subject: `Website enquiry from ${e.name}${e.company ? ` (${e.company})` : ''}`,
+      subject: `Website enquiry from ${subjectSafe(e.name)}${
+        e.company ? ` (${subjectSafe(e.company)})` : ''
+      }`,
       text: renderBody(e),
     }),
   });

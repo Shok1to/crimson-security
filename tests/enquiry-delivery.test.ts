@@ -49,6 +49,27 @@ describe('deliverEnquiry', () => {
     expect(body).toContain('PCI assessment');
   });
 
+  /**
+   * Called directly, not through either route, because the point is that this
+   * module defends itself. Both callers strip CR/LF as well, but this is the
+   * shared boundary every enquiry crosses and a third caller is specified, so
+   * the invariant must not depend on each one remembering.
+   */
+  it('keeps CR/LF out of the subject even when the caller does not strip it', async () => {
+    vi.mocked(fetch).mockResolvedValue(new Response('{}', { status: 200 }));
+    await deliverEnquiry({
+      ...enquiry,
+      name: 'Ada\r\nBcc: attacker@example.com',
+      company: 'Analytical\nEngines',
+    });
+
+    const [, init] = vi.mocked(fetch).mock.calls[0];
+    const { subject } = JSON.parse(String(init?.body)) as { subject: string };
+    expect(subject).not.toMatch(/[\r\n]/);
+    expect(subject).toContain('Ada');
+    expect(subject).toContain('Analytical');
+  });
+
   it('includes the transcript for chat leads', async () => {
     vi.mocked(fetch).mockResolvedValue(new Response('{}', { status: 200 }));
     await deliverEnquiry({
