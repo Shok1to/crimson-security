@@ -2,7 +2,10 @@ node_modules
 .next
 out
 .vercel
-.env*.local
+# Next.js loads bare .env and .env.development too, and this branch needs two
+# API keys. Ignore every env file; add an example one back explicitly if needed.
+.env*
+!.env.example
 next-env.d.ts
 *.tsbuildinfo
 .DS_Store
