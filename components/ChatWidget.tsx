@@ -233,26 +233,23 @@ export default function ChatWidget() {
               // clear and keeps a margin on the other three sides.
               //
               // It also gets a near-opaque surface and a backdrop blur.
-              // .card-surface is 90% opaque with no backdrop-filter, which
-              // reads as pleasant depth at the restored card's size but
-              // collects far too much background when the panel is most of the
-              // viewport — over the hero, the headline read straight through
-              // the message area.
+              // OBSERVED: .card-surface is 90% opaque with no backdrop-filter.
+              // That reads as depth at the restored size, but collects too much
+              // background when the panel is most of the viewport — the hero
+              // showed through the message area.
               //
-              // Blur alone does not settle it. Blur radius works against stroke
-              // width, and the hero headline is set around 60px with strokes
-              // far thicker than anything else on the page: at blur(24px) the
-              // body copy becomes an unreadable wash but that headline still
-              // shows discernible letterforms. Pushing the radius higher to
-              // defeat 60px type starts to read as frosted glass rather than a
-              // surface, and costs more to composite on an element this large.
+              // NOT OBSERVED: whether the blur alone would have been enough.
+              // Nobody has seen it. The screenshot path used to check this does
+              // not composite backdrop-filter, so it cannot represent the blur
+              // either way — an early reading that said blur was insufficient
+              // was that artifact, not the browser.
               //
-              // So bg-ink-900/95 kills the transmission outright — .card-surface
-              // sets `background` as a shorthand in @layer components, so this
-              // background-color utility from @layer utilities lands underneath
-              // the gradient instead of replacing it, putting the surface near
-              // 99.5% opaque — while the blur keeps the softness at the edges
-              // where a little of the page still shows.
+              // So bg-ink-900/95 is the load-bearing part, chosen because it IS
+              // verifiable through that path: under uncertainty, prefer the
+              // mechanism you can confirm. .card-surface sets `background` as a
+              // shorthand in @layer components, so this background-color
+              // utility from @layer utilities lands underneath the gradient
+              // rather than replacing it. The blur is kept for edge softness.
               //
               // Both are confined to this branch: the restored card is
               // untouched and still measures backdropFilter "none", and
