@@ -306,7 +306,9 @@ export default function ChatWidget() {
 
               {/* A way in without typing. Starting affordance only, so it goes
                   as soon as there is a conversation — not a persistent menu.
-                  flex-wrap keeps it off a horizontal scrollbar when narrow. */}
+                  flex-wrap keeps it off a horizontal scrollbar when narrow;
+                  at text-sm these take more rows on a phone, which is the
+                  right trade for reaching the 44px target below. */}
               {turns.length === 0 && (
                 <div role="group" aria-label="Suggested questions" className="flex flex-wrap gap-2">
                   {QUICK_REPLIES.map((question) => (
@@ -315,7 +317,21 @@ export default function ChatWidget() {
                       type="button"
                       onClick={() => void sendMessage(question)}
                       disabled={pending}
-                      className="rounded-full border border-edge/10 px-3 py-1.5 text-left text-xs leading-snug text-silver-400 transition-colors duration-300 hover:border-silver-400/40 hover:text-silver-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      /* min-h-11 is 44px, the WCAG 2.5.5 / HIG target and
+                         exactly what the send button in this same panel
+                         measures — these were 31px, and they matter most on a
+                         phone, which is where they were smallest. inline-flex
+                         centres the label within that height, and py-2.5 comes
+                         to 41px so the padding gives way to the minimum rather
+                         than fighting it.
+
+                         silver-400 is the site's MUTED BODY token: at 7.1:1 on
+                         this surface these read as captions, when an action
+                         should read more confidently than prose. silver-300
+                         takes it to 10.3:1, with the existing silver-100 hover
+                         still a clear step above at 15.8:1. The border
+                         treatment is deliberately untouched. */
+                      className="inline-flex min-h-11 items-center rounded-full border border-edge/10 px-4 py-2.5 text-left text-sm leading-snug text-silver-300 transition-colors duration-300 hover:border-silver-400/40 hover:text-silver-100 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {question}
                     </button>
