@@ -23,16 +23,12 @@ interface Window {
 }
 
 /**
- * Fixed-window counter held in this instance's memory.
+ * Fixed-window counter in this instance's memory.
  *
- * Deliberate trade-off (spec section 6): state does not survive a cold start and
- * is not shared between serverless instances, so the effective limit is
- * `max x instance count`. It stops a casual script and an accidental client
- * loop; it does not stop a determined attacker. The payload caps and the
- * CHAT_ENABLED kill switch are what bound the damage.
- *
- * This interface is the swap point — a Redis-backed implementation drops in
- * without touching the route.
+ * Deliberate trade-off (spec section 6): state is per-instance, so the real
+ * limit is `max x instance count`. It stops a casual script, not a determined
+ * attacker — the payload caps and CHAT_ENABLED are what bound the damage. The
+ * interface is the swap point; Redis drops in without touching the routes.
  */
 export function createInMemoryRateLimiter(
   max: number = RATE_LIMIT_MAX,

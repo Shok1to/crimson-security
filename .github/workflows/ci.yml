@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A second push to the same branch cancels the first — a superseded run's
+# result is never the one anyone acts on.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          # Matches the floor in package.json engines.
+          node-version: '18.17'
+          cache: npm
+
+      # `ci` not `install`: fails on a lockfile that disagrees with
+      # package.json rather than quietly resolving something else.
+      - run: npm ci
+
+      # Each step runs even if an earlier one failed, so a single push reports
+      # every problem at once instead of one per round trip.
+      - name: Lint
+        if: '!cancelled()'
+        run: npm run lint
+
+      - name: Typecheck
+        if: '!cancelled()'
+        run: npm run typecheck
+
+      - name: Test
+        if: '!cancelled()'
+        run: npm test
+
+      # Last, and it catches what the others cannot: Next.js enforces its
+      # route-export contract only at build time. A route exporting a helper
+      # passes tsc, ESLint and Vitest, and fails here — which is exactly how it
+      # reached main undetected once already.
+      - name: Build
+        if: '!cancelled()'
+        run: npm run build
+        env:
+          # The build must not depend on secrets. CHAT_ENABLED is deliberately
+          # absent so the chat endpoint compiles in its default-off state.
+          NEXT_TELEMETRY_DISABLED: '1'

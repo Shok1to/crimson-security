@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { QUICK_REPLIES } from '@/lib/quick-replies';
 import { buildSystemPrompt } from '@/lib/chat-knowledge';
 import { MAX_USER_MESSAGE_CHARS } from '@/lib/chat-config';
@@ -62,6 +64,38 @@ describe('QUICK_REPLIES', () => {
     ]) {
       expect(prompt).toContain(term);
     }
+  });
+
+  /**
+   * The opening chips and the input-row menu render the same four questions.
+   * Without a DOM the render itself is untestable, but the thing that would
+   * actually rot is a second hardcoded copy of the list in the component, so
+   * that is what this pins.
+   */
+  describe('the widget renders them from this module only', () => {
+    const widget = readFileSync(
+      fileURLToPath(new URL('../components/ChatWidget.tsx', import.meta.url)),
+      'utf8',
+    );
+
+    it('imports QUICK_REPLIES once', () => {
+      const imports = widget.match(/import \{[^}]*QUICK_REPLIES[^}]*\} from '@\/lib\/quick-replies';/g);
+      expect(imports).toHaveLength(1);
+    });
+
+    it('maps it at both render sites rather than duplicating the list', () => {
+      expect(widget.match(/QUICK_REPLIES\.map\(/g)).toHaveLength(2);
+    });
+
+    it('hardcodes none of the questions', () => {
+      for (const question of QUICK_REPLIES) {
+        expect(widget, question).not.toContain(question);
+      }
+    });
+
+    it('styles both sets from one shared class', () => {
+      expect(widget.match(/className=\{CHIP_CLASS\}/g)).toHaveLength(2);
+    });
   });
 
   it('never suggests something the grounding rules forbid answering', () => {

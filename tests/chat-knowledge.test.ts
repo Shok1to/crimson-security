@@ -38,6 +38,58 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toMatch(/exploit/i);
   });
 
+  /**
+   * The one that matters most on a security firm's public widget: a transcript
+   * travels with a captured lead into an inbox, so anything a visitor pastes
+   * here leaves Crimson holding unsolicited infrastructure detail about a
+   * company that is not yet a client.
+   */
+  it('never asks for or invites detail about the visitor environment', () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toMatch(/never ask for specific technical detail/i);
+    expect(prompt).toMatch(/never invite it/i);
+    for (const kind of [
+      /IP addresses or ranges/i,
+      /hostnames/i,
+      /topology/i,
+      /versions/i,
+      /firewall rules/i,
+      /security tooling/i,
+      /vulnerability or scan findings/i,
+      /credentials, keys or\s+tokens/i,
+    ]) {
+      expect(prompt).toMatch(kind);
+    }
+  });
+
+  // Declining is not enough: the reason has to reflect well on a security firm.
+  it('explains why volunteered detail belongs in a direct conversation', () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toMatch(/do not repeat it back/i);
+    expect(prompt).toMatch(/do not analyse it/i);
+    expect(prompt).toMatch(/not a secure channel/i);
+    expect(prompt).toMatch(/under an engagement/i);
+  });
+
+  // Nothing stopped the assistant being used as a general-purpose chatbot:
+  // resignation letters and Python debugging, on Crimson's billing and under
+  // Crimson's name.
+  it('limits itself to Crimson, its services and getting in touch', () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toMatch(/outside what you can help with/i);
+    expect(prompt).toMatch(/do not start it and do not do part of it first/i);
+    expect(prompt).toMatch(/do not lecture/i);
+  });
+
+  // The limit must not swallow the adjacent questions a visitor evaluating
+  // Crimson actually needs answered.
+  it('keeps security questions around the work on topic', () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toMatch(/weighing up Crimson's\s+services/i);
+    expect(prompt).toMatch(/what PCI is/i);
+    expect(prompt).toMatch(/penetration test differs from a vulnerability\s+scan/i);
+  });
+
   // I5: an automated assistant on a security firm's own site must not be able
   // to agree to work on the firm's behalf. "Never state timelines" does not
   // cover "yes, we can definitely handle that".

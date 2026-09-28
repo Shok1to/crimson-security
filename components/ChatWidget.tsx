@@ -2,13 +2,19 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
-import { Loader2, Maximize2, Minimize2, Send, X } from 'lucide-react';
+import { Lightbulb, Loader2, Maximize2, Minimize2, Send, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { MAX_USER_MESSAGE_CHARS } from '@/lib/chat-config';
 import { settleTurn, trimForRequest, type Turn } from '@/lib/chat-history';
 import { inputClass } from '@/lib/field-styles';
 import { QUICK_REPLIES } from '@/lib/quick-replies';
 import MapleLeaf from './MapleLeaf';
+
+/**
+ * Mounted at layout level, outside <main>, and it must stay outside any
+ * `.theme-light` ancestor: that class flips the silver/ink tokens for a light
+ * section, which would leave this panel light text on a light surface.
+ */
 
 /** The site's signature curve — matches Reveal.tsx and the capability panel. */
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -19,10 +25,18 @@ const GREETING =
 const GENERIC_ERROR = 'Something went wrong. Please try again.';
 
 /**
- * Stands in when a lead was delivered but the model produced no closing text —
- * the tool loop can exhaust its iterations still in `tool_use`. Telling the
- * visitor it failed after their details were already emailed is the exact
- * mirror of the silent-discard bug this branch exists to fix.
+ * Shared by the opening chips and the menu, so the two cannot drift. min-h-11
+ * is the 44px WCAG 2.5.5 floor, matching the send button; py-2.5 comes to 41px
+ * so it gives way to the minimum. silver-300 reads as an action rather than
+ * the muted body silver-400, with silver-100 hover above it.
+ */
+const CHIP_CLASS =
+  'inline-flex min-h-11 items-center rounded-full border border-edge/10 px-4 py-2.5 text-left text-sm leading-snug text-silver-300 transition-colors duration-300 hover:border-silver-400/40 hover:text-silver-100 disabled:cursor-not-allowed disabled:opacity-60';
+
+/**
+ * Stands in when a lead was delivered but the model produced no closing text,
+ * which happens if the tool loop exhausts its iterations still in `tool_use`.
+ * Reporting failure after the details were emailed is the bug, inverted.
  */
 const LEAD_CONFIRMED =
   "Thanks — I've passed your details to the Crimson Security team. They'll follow up by email.";
@@ -31,6 +45,8 @@ export default function ChatWidget() {
   const [open, setOpen] = useState(false);
   /** Purely presentational — it never touches `turns`. */
   const [maximized, setMaximized] = useState(false);
+  /** The suggestions menu behind the input-row trigger. */
+  const [menuOpen, setMenuOpen] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState('');
   const [pending, setPending] = useState(false);
@@ -54,12 +70,21 @@ export default function ChatWidget() {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close();
+      if (e.key !== 'Escape') return;
+      // Innermost layer first. Handled here rather than in a second listener
+      // so precedence is an early return, not the order two listeners happen
+      // to be registered in — Escape must never close the whole assistant
+      // while the menu is open.
+      if (menuOpen) {
+        setMenuOpen(false);
+        return;
+      }
+      close();
     };
     window.addEventListener('keydown', onKey);
     inputRef.current?.focus();
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, close]);
+  }, [open, close, menuOpen]);
 
   // Keep the newest turn in view as it streams.
   useEffect(() => {
@@ -196,24 +221,15 @@ export default function ChatWidget() {
         aria-label="Open the Crimson Security assistant"
         aria-expanded={open}
         aria-controls="chat-panel"
-        /* The real mark, so the entry point is the brand rather than a
-           stand-in for it — but that forces the surface to change with it. The
-           mark is largely crimson with silver detail, so on the old
-           bg-crimson-button its crimson would have sunk into the fill and only
-           the "C" would have read: muddy, and it would have looked like a
-           mistake. ink-800 is one step off the ink-900 page base, enough to
-           separate without reading as a hole, and silver-border supplies the
-           same rim the panel and the cards use rather than a hand-rolled one.
-           shadow-crimson-cta stays on both states: with the crimson fill gone
-           that glow is the only thing making this findable on a dark page. */
+        /* The mark is mostly crimson, so it needs a non-crimson surface or it
+           sinks into the fill. ink-800 sits one step off the ink-900 page base.
+           Keep shadow-crimson-cta on both states: without the crimson fill, the
+           glow is the only thing making this findable on a dark page. */
         className="silver-border fixed bottom-6 right-6 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full bg-ink-800 shadow-crimson-cta transition-all duration-300 hover:bg-ink-700 hover:shadow-crimson-cta-hover"
       >
-        {/* 36px inside the 56px button. The mark carries a shield, a leaf and a
-            "C", which would have turned to mush in the old 24px icon slot; 36
-            is the top of the sensible range here and still leaves a 10px ring
-            of surface. The asset is 667px square, so there is ample resolution
-            even at 3x. Decorative — the button's aria-label names the action,
-            exactly as Header.tsx and Footer.tsx treat the same file. */}
+        {/* 36px in a 56px button: the shield, leaf and "C" need the size, and
+            it still leaves a ring of surface. Decorative, as in Header.tsx and
+            Footer.tsx — the button's aria-label names the action. */}
         <Image
           src="/crimson-security-mark.png"
           alt=""
@@ -239,62 +255,46 @@ export default function ChatWidget() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
-            // `layout` is what animates the maximize/restore size change, using
-            // the transition below — the site's easing at 0.35s. Framer is
-            // wrapped in MotionConfig reducedMotion="user", so this is covered
-            // without a CSS keyframe that would have to be remembered in the
+            // `layout` animates the maximize/restore size change. Framer is
+            // wrapped in MotionConfig reducedMotion="user"; a CSS keyframe
+            // would instead have to be registered by name in the
             // prefers-reduced-motion list in app/globals.css.
             layout
             transition={{ duration: 0.35, ease: EASE }}
-            className={`silver-border card-surface fixed inset-x-0 bottom-0 top-[4.5rem] z-50 flex flex-col overflow-hidden rounded-t-3xl shadow-card sm:rounded-3xl ${
-              // Below sm the panel is already a near-fullscreen sheet, so only
-              // the sm: classes differ. Maximized leaves the 4.5rem site header
-              // clear and keeps a margin on the other three sides.
+            className={`silver-border card-surface fixed inset-x-0 z-50 flex flex-col overflow-hidden rounded-t-3xl shadow-card sm:rounded-3xl ${
+              // Two sizes on every breakpoint. Mobile used to be stuck in the
+              // largest one, so the only way back to the page was to close the
+              // assistant. Unmaximized it is now a sheet the page shows above.
               //
-              // It also gets a near-opaque surface and a backdrop blur.
-              // OBSERVED: .card-surface is 90% opaque with no backdrop-filter.
-              // That reads as depth at the restored size, but collects too much
-              // background when the panel is most of the viewport — the hero
-              // showed through the message area.
+              // Mobile heights are dvh, not vh: vh is the LAYOUT viewport, which
+              // stays tall while the address bar is showing, so the bottom of
+              // the panel — the input row — hides behind browser chrome. dvh
+              // tracks the visual viewport as that chrome collapses. Hero.tsx
+              // uses 100svh for the same reason.
               //
-              // NOT OBSERVED: whether the blur alone would have been enough.
-              // Nobody has seen it. The screenshot path used to check this does
-              // not composite backdrop-filter, so it cannot represent the blur
-              // either way — an early reading that said blur was insufficient
-              // was that artifact, not the browser.
-              //
-              // So bg-ink-900/95 is the load-bearing part, chosen because it IS
-              // verifiable through that path: under uncertainty, prefer the
-              // mechanism you can confirm. .card-surface sets `background` as a
-              // shorthand in @layer components, so this background-color
-              // utility from @layer utilities lands underneath the gradient
-              // rather than replacing it. The blur is kept for edge softness.
-              //
-              // Both are confined to this branch: the restored card is
-              // untouched and still measures backdropFilter "none", and
-              // .card-surface itself is not edited, so ContactSection,
-              // CapabilityTabs, ServicesGrid and StoryCards are unaffected —
-              // they are in-flow over backgrounds their own section controls,
-              // which is the assumption this fixed-position panel broke.
+              // Maximized, .card-surface (90% opaque) collects too much
+              // background, so bg-ink-900/95 sits under its gradient — a
+              // longhand, so it does not replace the shorthand. That pair is
+              // sm: only. DO NOT edit .card-surface; four components share it.
+              // The blur is edge softness, never verified as sufficient alone.
               maximized
-                ? 'sm:inset-x-6 sm:bottom-6 sm:top-[5.5rem] sm:h-auto sm:w-auto sm:bg-ink-900/95 sm:backdrop-blur-xl'
-                : 'sm:inset-x-auto sm:bottom-6 sm:right-6 sm:top-auto sm:h-[36rem] sm:w-[24rem]'
+                ? 'top-[4.5rem] h-[calc(100dvh-4.5rem)] sm:inset-x-6 sm:bottom-6 sm:top-[5.5rem] sm:h-auto sm:w-auto sm:bg-ink-900/95 sm:backdrop-blur-xl'
+                : 'bottom-0 h-[80dvh] sm:inset-x-auto sm:bottom-6 sm:right-6 sm:top-auto sm:h-[36rem] sm:w-[24rem]'
             }`}
           >
-            <div className="flex items-center justify-between border-b border-edge/10 px-5 py-4">
+            <div className="flex shrink-0 items-center justify-between border-b border-edge/10 px-5 py-4">
               <h2 id="chat-heading" className="flex items-center gap-2.5 font-display text-base font-bold text-silver-50">
                 <MapleLeaf className="h-4 w-4 shrink-0 text-crimson-400" />
                 Ask Crimson
               </h2>
               <div className="-mr-2 flex items-center">
-                {/* Hidden below sm, where the panel is already a near-fullscreen
-                    sheet and there is nothing to maximize into. The label
+                {/* Shown at every width: mobile has two sizes too. The label
                     carries the state; no aria-pressed, so it is announced once. */}
                 <button
                   type="button"
                   onClick={() => setMaximized((v) => !v)}
                   aria-label={maximized ? 'Restore the assistant' : 'Maximize the assistant'}
-                  className="hidden h-10 w-10 items-center justify-center rounded-md text-silver-300 transition-colors hover:bg-edge/5 hover:text-silver-50 sm:inline-flex"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-md text-silver-300 transition-colors hover:bg-edge/5 hover:text-silver-50"
                 >
                   {maximized ? (
                     <Minimize2 className="h-4 w-4" aria-hidden="true" />
@@ -315,17 +315,20 @@ export default function ChatWidget() {
               </div>
             </div>
 
-            <div ref={logRef} className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+            {/* min-h-0 is load-bearing: a flex item defaults to min-height
+                auto, so without it a long conversation grows the log past the
+                panel and pushes the input row out of view instead of
+                scrolling inside it. */}
+            <div ref={logRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
               <p className="rounded-xl border border-edge/10 bg-edge/[0.02] p-4 text-sm leading-relaxed text-silver-200">
                 {GREETING}
               </p>
 
-              {/* A way in without typing. Starting affordance only, so it goes
-                  as soon as there is a conversation — not a persistent menu.
-                  flex-wrap keeps it off a horizontal scrollbar when narrow;
-                  at text-sm these take more rows on a phone, which is the
-                  right trade for reaching the 44px target below. */}
-              {turns.length === 0 && (
+              {/* A way in without typing, for an empty conversation. The
+                  same four questions stay reachable all conversation long from
+                  the trigger in the input row; this stands down while that
+                  menu is open rather than showing them twice. */}
+              {turns.length === 0 && !menuOpen && (
                 <div role="group" aria-label="Suggested questions" className="flex flex-wrap gap-2">
                   {QUICK_REPLIES.map((question) => (
                     <button
@@ -333,21 +336,7 @@ export default function ChatWidget() {
                       type="button"
                       onClick={() => void sendMessage(question)}
                       disabled={pending}
-                      /* min-h-11 is 44px, the WCAG 2.5.5 / HIG target and
-                         exactly what the send button in this same panel
-                         measures — these were 31px, and they matter most on a
-                         phone, which is where they were smallest. inline-flex
-                         centres the label within that height, and py-2.5 comes
-                         to 41px so the padding gives way to the minimum rather
-                         than fighting it.
-
-                         silver-400 is the site's MUTED BODY token: at 7.1:1 on
-                         this surface these read as captions, when an action
-                         should read more confidently than prose. silver-300
-                         takes it to 10.3:1, with the existing silver-100 hover
-                         still a clear step above at 15.8:1. The border
-                         treatment is deliberately untouched. */
-                      className="inline-flex min-h-11 items-center rounded-full border border-edge/10 px-4 py-2.5 text-left text-sm leading-snug text-silver-300 transition-colors duration-300 hover:border-silver-400/40 hover:text-silver-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      className={CHIP_CLASS}
                     >
                       {question}
                     </button>
@@ -399,7 +388,52 @@ export default function ChatWidget() {
               {announcement}
             </div>
 
-            <form onSubmit={onSubmit} className="flex items-center gap-2 border-t border-edge/10 px-5 py-4">
+            {/* Always in the DOM so aria-controls on the trigger always
+                resolves; display carries the open state. The native hidden
+                attribute would lose to the flex class, since an author rule
+                beats the UA [hidden] rule whatever the specificity. shrink-0
+                keeps its height, so the log gives way instead of the panel
+                overflowing. */}
+            <div
+              id="chat-suggestions"
+              role="group"
+              aria-label="Suggested questions"
+              className={`${menuOpen ? 'flex' : 'hidden'} shrink-0 flex-wrap gap-2 border-t border-edge/10 px-5 py-4`}
+            >
+              {QUICK_REPLIES.map((question) => (
+                <button
+                  key={question}
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    void sendMessage(question);
+                  }}
+                  disabled={pending}
+                  className={CHIP_CLASS}
+                >
+                  {question}
+                </button>
+              ))}
+            </div>
+
+            <form onSubmit={onSubmit} className="flex shrink-0 items-center gap-2 border-t border-edge/10 px-5 py-4">
+              {/* Left of the input: the send button keeps its position and
+                  its crimson weight, and a control that composes is not sat
+                  next to the one that sends. A disclosure widget, so
+                  aria-expanded and aria-controls do the work; the label
+                  reflects state on its own, as the maximize control does, and
+                  aria-pressed alongside it would announce the state twice. */}
+              <button
+                type="button"
+                onClick={() => setMenuOpen((v) => !v)}
+                aria-expanded={menuOpen}
+                aria-controls="chat-suggestions"
+                aria-label={menuOpen ? 'Hide suggested questions' : 'Show suggested questions'}
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-silver-300 transition-colors hover:bg-edge/5 hover:text-silver-50"
+              >
+                <Lightbulb className="h-5 w-5" aria-hidden="true" />
+              </button>
+
               <label htmlFor="chat-input" className="sr-only">
                 Your message
               </label>
