@@ -327,10 +327,17 @@ export default function ChatWidget() {
                 {turns.map((turn, i) => (
                   <li
                     key={i}
+                    /* Who spoke is carried by ALIGNMENT first and colour
+                       second, so the conversation is readable without
+                       decoding a tint. w-fit lets a one-word turn hug its
+                       text instead of stretching to the cap, which is what
+                       makes the asymmetry visible on short turns; the max-w
+                       then bounds a long one. The sr-only prefixes below are
+                       unchanged and remain the accessible answer. */
                     className={
                       turn.role === 'user'
-                        ? 'rounded-xl border border-crimson-400/60 bg-crimson-600/10 p-4 text-sm leading-relaxed text-silver-100'
-                        : 'rounded-xl border border-edge/10 bg-edge/[0.02] p-4 text-sm leading-relaxed text-silver-200'
+                        ? 'ml-auto w-fit max-w-[85%] rounded-xl border border-crimson-400/60 bg-crimson-600/10 p-4 text-sm leading-relaxed text-silver-100'
+                        : 'mr-auto w-fit max-w-[95%] rounded-xl border border-edge/10 bg-edge/[0.02] p-4 text-sm leading-relaxed text-silver-200'
                     }
                   >
                     <span className="sr-only">{turn.role === 'user' ? 'You said: ' : 'Assistant said: '}</span>
