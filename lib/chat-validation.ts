@@ -8,9 +8,11 @@ type Validation =
 /**
  * Validates the conversation the client echoes back on every turn.
  *
- * The role-sequence rules are not pedantry: the Messages API rejects a history
- * that does not alternate from `user`, and we would rather return our own 400
- * than pay for a round trip to learn that.
+ * Lives here rather than in the route because Next.js permits only specific
+ * exports from a route module, so the route can export nothing but POST.
+ *
+ * The Messages API rejects a history that does not alternate from `user`, and
+ * our own 400 is cheaper than a round trip to learn that.
  */
 export function validateConversation(body: unknown): Validation {
   const messages = (body as { messages?: unknown })?.messages;

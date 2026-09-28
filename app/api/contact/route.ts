@@ -5,14 +5,10 @@ import { clientKeyFromHeaders, rateLimiter } from '@/lib/rate-limit';
 /**
  * Contact form handler.
  *
- * Validates input, screens bots with a honeypot, and delivers the enquiry via deliverEnquiry.
- * Delivery requires RESEND_API_KEY; if missing or the transport fails, deliverEnquiry throws
- * and this route returns 500. This intentional failure (not a false success) ensures the form
- * shows its error state instead of claiming the message was sent when it wasn't.
- *
- * Because it now genuinely sends mail, this is an unauthenticated endpoint that costs
- * something per POST. It shares the chat endpoint's rate limiter — same mailbox, same
- * Resend quota, so the same bound. The honeypot stops naive bots and nothing more.
+ * deliverEnquiry THROWS on every failure, including a missing RESEND_API_KEY,
+ * and this route turns that into a 500 — never a false success, which was the
+ * original bug. It genuinely sends mail, so it shares the chat endpoint's rate
+ * limiter: same mailbox, same quota. The honeypot stops only naive bots.
  */
 
 type Field = 'name' | 'email' | 'message';

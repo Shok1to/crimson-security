@@ -114,24 +114,12 @@ in the flow of the conversation — one thing at a time, never a form. Never
 invent a value you were not given. If someone isn't interested, drop it.`;
 
 /**
- * Goes AFTER the knowledge base, because otherwise the last thing the model
- * reads before the visitor's message is a contact block, not a constraint.
- * These are the three highest-liability prohibitions plus the commitment
- * clause, restated where they carry the most weight.
- *
- * It closes on the no-markdown rule, because emitting markdown is a
- * generation-time habit rather than a reasoned choice and this is the last
- * thing read before the visitor's message.
- *
- * Which is also why this block, and the matching rule in RULES, are written as
- * PROSE and contain none of the markup they forbid. Models mirror the
- * formatting of nearby context, so a bulleted list telling the model never to
- * use bullets works against itself, and naming the forbidden tokens by
- * printing them is the same mistake in miniature. The syntaxes are described
- * in words instead. Keep it that way: no dashes starting a line, no asterisks,
- * no hash marks, no backticks anywhere in these two strings.
- *
- * Static text — the cached prefix stays byte-stable.
+ * Goes AFTER the knowledge base, so the last thing read before the visitor's
+ * message is a constraint rather than the contact block. This block and the
+ * matching rule in RULES are PROSE containing none of the markup they forbid:
+ * models mirror nearby formatting. Keep it that way — no leading dashes,
+ * asterisks, hash marks or backticks. Static text, so the prompt stays
+ * byte-stable.
  */
 const REMINDERS = `BEFORE YOU REPLY
 
