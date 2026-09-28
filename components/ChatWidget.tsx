@@ -226,8 +226,21 @@ export default function ChatWidget() {
               // Below sm the panel is already a near-fullscreen sheet, so only
               // the sm: classes differ. Maximized leaves the 4.5rem site header
               // clear and keeps a margin on the other three sides.
+              //
+              // It also gets a backdrop blur. .card-surface is 90% opaque with
+              // no backdrop-filter, which reads as pleasant depth at the
+              // restored card's size but collects far too much background when
+              // the panel is most of the viewport — over the hero, the headline
+              // was legible straight through the message area. Blurring what is
+              // behind keeps the depth the design wants while destroying the
+              // detail that competed with the conversation. Same pairing
+              // Header.tsx uses for its translucent bar when scrolled, one step
+              // stronger because the surface is much larger. The restored
+              // branch is untouched, so that card renders exactly as before,
+              // and .card-surface itself is not edited — it is shared with the
+              // contact form card and the capability panel.
               maximized
-                ? 'sm:inset-x-6 sm:bottom-6 sm:top-[5.5rem] sm:h-auto sm:w-auto'
+                ? 'sm:inset-x-6 sm:bottom-6 sm:top-[5.5rem] sm:h-auto sm:w-auto sm:backdrop-blur-xl'
                 : 'sm:inset-x-auto sm:bottom-6 sm:right-6 sm:top-auto sm:h-[36rem] sm:w-[24rem]'
             }`}
           >
