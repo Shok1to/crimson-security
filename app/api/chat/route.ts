@@ -1,4 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
+import { captureLeadTool, runCaptureLead } from '@/lib/capture-lead';
 import { CHAT_MODEL, MAX_MESSAGES, MAX_OUTPUT_TOKENS, MAX_PAYLOAD_CHARS, MAX_USER_MESSAGE_CHARS } from '@/lib/chat-config';
 import { buildSystemPrompt } from '@/lib/chat-knowledge';
 import { isTerminalStopReason, sseEvent, toAnthropicMessages } from '@/lib/chat-stream';
@@ -128,32 +129,57 @@ export async function POST(request: Request): Promise<Response> {
         controller.enqueue(encoder.encode(sseEvent(event, data)));
 
       try {
-        const stream = getClient().messages.stream(
-          {
-            model: CHAT_MODEL,
-            max_tokens: MAX_OUTPUT_TOKENS,
-            system: [
-              { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
-            ],
-            messages: toAnthropicMessages(validation.messages),
-          },
-          { signal: abort.signal },
-        );
+        const conversation = toAnthropicMessages(validation.messages);
 
-        stream.on('text', (delta) => send('delta', { text: delta }));
+        // One tool, so at most one round trip after the first. The bound stops a
+        // pathological loop from billing without end.
+        for (let iteration = 0; iteration < 3; iteration += 1) {
+          const stream = getClient().messages.stream(
+            {
+              model: CHAT_MODEL,
+              max_tokens: MAX_OUTPUT_TOKENS,
+              system: [
+                { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+              ],
+              tools: [captureLeadTool],
+              messages: conversation,
+            },
+            { signal: abort.signal },
+          );
 
-        const final = await stream.finalMessage();
+          stream.on('text', (delta) => send('delta', { text: delta }));
 
-        // Cheap signal that prompt caching is actually working (spec section 7).
-        console.info('[chat] turn complete', {
-          cacheRead: final.usage.cache_read_input_tokens,
-          output: final.usage.output_tokens,
-          stopReason: final.stop_reason,
-        });
+          const final = await stream.finalMessage();
 
-        if (!isTerminalStopReason(final.stop_reason)) {
-          // Tool handling arrives in Task 8.
-          send('error', { message: 'Unsupported response.' });
+          // Cheap signal that prompt caching is actually working (spec section 7).
+          console.info('[chat] turn complete', {
+            cacheRead: final.usage.cache_read_input_tokens,
+            output: final.usage.output_tokens,
+            stopReason: final.stop_reason,
+          });
+
+          if (isTerminalStopReason(final.stop_reason)) break;
+
+          const toolUses = final.content.filter(
+            (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use',
+          );
+
+          conversation.push({ role: 'assistant', content: final.content });
+          conversation.push({
+            role: 'user',
+            content: await Promise.all(
+              toolUses.map(async (block) => {
+                const result = await runCaptureLead(block.input, validation.messages);
+                if (result.ok) send('lead', { ok: true });
+                return {
+                  type: 'tool_result' as const,
+                  tool_use_id: block.id,
+                  content: JSON.stringify(result),
+                  is_error: !result.ok,
+                };
+              }),
+            ),
+          });
         }
 
         send('done', {});
