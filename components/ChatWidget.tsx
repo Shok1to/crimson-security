@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { Loader2, Maximize2, MessageSquare, Minimize2, Send, X } from 'lucide-react';
+import { Loader2, Maximize2, Minimize2, Send, ShieldCheck, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { MAX_USER_MESSAGE_CHARS } from '@/lib/chat-config';
 import { settleTurn, trimForRequest, type Turn } from '@/lib/chat-history';
@@ -197,7 +197,12 @@ export default function ChatWidget() {
         aria-controls="chat-panel"
         className="fixed bottom-6 right-6 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full bg-crimson-button text-white shadow-crimson-cta transition-all duration-300 hover:bg-crimson-button-hover hover:shadow-crimson-cta-hover"
       >
-        <MessageSquare className="h-6 w-6" strokeWidth={1.8} aria-hidden="true" />
+        {/* A shield rather than a speech bubble: the entry point should read as
+            security, and it echoes the shield in the site's own logo mark.
+            Keeping strokeWidth 1.8 — heavier than the 1.5 the in-content
+            service icons use, because this is white on saturated crimson at
+            24px, where 1.5 goes thin and loses the CTA's presence. */}
+        <ShieldCheck className="h-6 w-6" strokeWidth={1.8} aria-hidden="true" />
       </button>
 
       <AnimatePresence>
