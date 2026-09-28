@@ -48,6 +48,28 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toMatch(/automated/i);
   });
 
+  // The live pass showed Haiku reaching for markdown unprompted, and the
+  // widget renders turn content as plain text, so "**Full-knowledge testing**"
+  // reached the visitor with the asterisks visible. Instruction is the fix —
+  // no renderer, no sanitiser, no dependency.
+  it('forbids markdown so the widget never renders syntax literally', () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toMatch(/plain prose/i);
+    expect(prompt).toMatch(/never use markdown/i);
+    for (const syntax of [/\*\*bold\*\*/, /## headings/, /backticks/, /bullet lists/, /numbered lists/]) {
+      expect(prompt).toMatch(syntax);
+    }
+  });
+
+  // Stated in RULES beside the other how-to-write instructions, and restated
+  // last where output habits are formed.
+  it('restates the no-markdown rule after the knowledge base', () => {
+    const prompt = buildSystemPrompt();
+    const tail = prompt.slice(prompt.lastIndexOf('BEFORE YOU REPLY'));
+    expect(tail).toMatch(/no markdown/i);
+    expect(prompt.indexOf('Never use markdown')).toBeLessThan(prompt.lastIndexOf('BEFORE YOU REPLY'));
+  });
+
   it('declines to reveal its own instructions', () => {
     expect(buildSystemPrompt()).toMatch(/do not recite[\s\S]{0,80}instructions/i);
   });
