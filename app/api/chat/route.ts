@@ -3,6 +3,7 @@ import { captureLeadTool, createLeadBudget } from '@/lib/capture-lead';
 import { CHAT_MODEL, MAX_OUTPUT_TOKENS, MAX_PAYLOAD_CHARS } from '@/lib/chat-config';
 import { describeFailure } from '@/lib/chat-failure';
 import { buildSystemPrompt } from '@/lib/chat-knowledge';
+import { GUARD_MESSAGE, scanAnswer, type GuardPattern } from '@/lib/chat-output-guard';
 import { isTerminalStopReason, sseEvent, toAnthropicMessages } from '@/lib/chat-stream';
 import { validateConversation } from '@/lib/chat-validation';
 import { clientKeyFromHeaders, rateLimiter } from '@/lib/rate-limit';
@@ -70,6 +71,15 @@ export async function POST(request: Request): Promise<Response> {
 
       try {
         const conversation = toAnthropicMessages(validation.messages);
+
+        /**
+         * The deterministic backstop under the pricing and compliance rules.
+         * Scanned across the whole answer, not per delta, because the phrase
+         * being caught arrives split across several of them. Spans the tool
+         * loop so a second iteration cannot start a fresh budget.
+         */
+        let answer = '';
+        let guardTrip: GuardPattern | null = null;
         // One per request, so the 3-iteration loop below cannot multiply lead
         // emails and neither can parallel tool use within a single message.
         const leads = createLeadBudget();
@@ -98,9 +108,37 @@ export async function POST(request: Request): Promise<Response> {
             { signal: abort.signal },
           );
 
-          stream.on('text', (delta) => send('delta', { text: delta }));
+          stream.on('text', (delta) => {
+            if (guardTrip) return;
+            answer += delta;
 
-          const final = await stream.finalMessage();
+            // Scan BEFORE forwarding, so the delta completing a violating
+            // phrase never reaches the visitor. Earlier deltas are already
+            // sent; the answer is left truncated, which is the point.
+            guardTrip = scanAnswer(answer);
+            if (guardTrip) {
+              abort.abort();
+              return;
+            }
+
+            send('delta', { text: delta });
+          });
+
+          let final: Anthropic.Message | undefined;
+          try {
+            final = await stream.finalMessage();
+          } catch (error) {
+            // Our own abort above, not a failure. Anything else is real.
+            if (!guardTrip) throw error;
+          }
+
+          if (guardTrip) {
+            // No visitor text and no answer text — the fact and the pattern.
+            console.warn('[chat] output guard tripped', { pattern: guardTrip });
+            send('error', { message: GUARD_MESSAGE });
+            break;
+          }
+          if (!final) break;
 
           // cacheRead is expected to be 0 on this model — see the note on
           // cache_control above. It is still logged, because a non-zero value
