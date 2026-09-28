@@ -227,20 +227,36 @@ export default function ChatWidget() {
               // the sm: classes differ. Maximized leaves the 4.5rem site header
               // clear and keeps a margin on the other three sides.
               //
-              // It also gets a backdrop blur. .card-surface is 90% opaque with
-              // no backdrop-filter, which reads as pleasant depth at the
-              // restored card's size but collects far too much background when
-              // the panel is most of the viewport — over the hero, the headline
-              // was legible straight through the message area. Blurring what is
-              // behind keeps the depth the design wants while destroying the
-              // detail that competed with the conversation. Same pairing
-              // Header.tsx uses for its translucent bar when scrolled, one step
-              // stronger because the surface is much larger. The restored
-              // branch is untouched, so that card renders exactly as before,
-              // and .card-surface itself is not edited — it is shared with the
-              // contact form card and the capability panel.
+              // It also gets a near-opaque surface and a backdrop blur.
+              // .card-surface is 90% opaque with no backdrop-filter, which
+              // reads as pleasant depth at the restored card's size but
+              // collects far too much background when the panel is most of the
+              // viewport — over the hero, the headline read straight through
+              // the message area.
+              //
+              // Blur alone does not settle it. Blur radius works against stroke
+              // width, and the hero headline is set around 60px with strokes
+              // far thicker than anything else on the page: at blur(24px) the
+              // body copy becomes an unreadable wash but that headline still
+              // shows discernible letterforms. Pushing the radius higher to
+              // defeat 60px type starts to read as frosted glass rather than a
+              // surface, and costs more to composite on an element this large.
+              //
+              // So bg-ink-900/95 kills the transmission outright — .card-surface
+              // sets `background` as a shorthand in @layer components, so this
+              // background-color utility from @layer utilities lands underneath
+              // the gradient instead of replacing it, putting the surface near
+              // 99.5% opaque — while the blur keeps the softness at the edges
+              // where a little of the page still shows.
+              //
+              // Both are confined to this branch: the restored card is
+              // untouched and still measures backdropFilter "none", and
+              // .card-surface itself is not edited, so ContactSection,
+              // CapabilityTabs, ServicesGrid and StoryCards are unaffected —
+              // they are in-flow over backgrounds their own section controls,
+              // which is the assumption this fixed-position panel broke.
               maximized
-                ? 'sm:inset-x-6 sm:bottom-6 sm:top-[5.5rem] sm:h-auto sm:w-auto sm:backdrop-blur-xl'
+                ? 'sm:inset-x-6 sm:bottom-6 sm:top-[5.5rem] sm:h-auto sm:w-auto sm:bg-ink-900/95 sm:backdrop-blur-xl'
                 : 'sm:inset-x-auto sm:bottom-6 sm:right-6 sm:top-auto sm:h-[36rem] sm:w-[24rem]'
             }`}
           >
