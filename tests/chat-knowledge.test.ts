@@ -38,6 +38,25 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toMatch(/exploit/i);
   });
 
+  // Nothing stopped the assistant being used as a general-purpose chatbot:
+  // resignation letters and Python debugging, on Crimson's billing and under
+  // Crimson's name.
+  it('limits itself to Crimson, its services and getting in touch', () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toMatch(/outside what you can help with/i);
+    expect(prompt).toMatch(/do not start it and do not do part of it first/i);
+    expect(prompt).toMatch(/do not lecture/i);
+  });
+
+  // The limit must not swallow the adjacent questions a visitor evaluating
+  // Crimson actually needs answered.
+  it('keeps security questions around the work on topic', () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toMatch(/weighing up Crimson's\s+services/i);
+    expect(prompt).toMatch(/what PCI is/i);
+    expect(prompt).toMatch(/penetration test differs from a vulnerability\s+scan/i);
+  });
+
   // I5: an automated assistant on a security firm's own site must not be able
   // to agree to work on the firm's behalf. "Never state timelines" does not
   // cover "yes, we can definitely handle that".
