@@ -1,7 +1,7 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { Loader2, MessageSquare, Send, X } from 'lucide-react';
+import { Loader2, Maximize2, MessageSquare, Minimize2, Send, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { MAX_USER_MESSAGE_CHARS } from '@/lib/chat-config';
 import { settleTurn, trimForRequest, type Turn } from '@/lib/chat-history';
@@ -28,6 +28,8 @@ const LEAD_CONFIRMED =
 
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
+  /** Purely presentational — it never touches `turns`. */
+  const [maximized, setMaximized] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState('');
   const [pending, setPending] = useState(false);
@@ -213,22 +215,54 @@ export default function ChatWidget() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
+            // `layout` is what animates the maximize/restore size change, using
+            // the transition below — the site's easing at 0.35s. Framer is
+            // wrapped in MotionConfig reducedMotion="user", so this is covered
+            // without a CSS keyframe that would have to be remembered in the
+            // prefers-reduced-motion list in app/globals.css.
+            layout
             transition={{ duration: 0.35, ease: EASE }}
-            className="silver-border card-surface fixed inset-x-0 bottom-0 top-[4.5rem] z-50 flex flex-col overflow-hidden rounded-t-3xl shadow-card sm:inset-x-auto sm:bottom-6 sm:right-6 sm:top-auto sm:h-[36rem] sm:w-[24rem] sm:rounded-3xl"
+            className={`silver-border card-surface fixed inset-x-0 bottom-0 top-[4.5rem] z-50 flex flex-col overflow-hidden rounded-t-3xl shadow-card sm:rounded-3xl ${
+              // Below sm the panel is already a near-fullscreen sheet, so only
+              // the sm: classes differ. Maximized leaves the 4.5rem site header
+              // clear and keeps a margin on the other three sides.
+              maximized
+                ? 'sm:inset-x-6 sm:bottom-6 sm:top-[5.5rem] sm:h-auto sm:w-auto'
+                : 'sm:inset-x-auto sm:bottom-6 sm:right-6 sm:top-auto sm:h-[36rem] sm:w-[24rem]'
+            }`}
           >
             <div className="flex items-center justify-between border-b border-edge/10 px-5 py-4">
               <h2 id="chat-heading" className="flex items-center gap-2.5 font-display text-base font-bold text-silver-50">
                 <MapleLeaf className="h-4 w-4 shrink-0 text-crimson-400" />
                 Ask Crimson
               </h2>
-              <button
-                type="button"
-                onClick={close}
-                aria-label="Close the assistant"
-                className="-mr-2 inline-flex h-10 w-10 items-center justify-center rounded-md text-silver-300 transition-colors hover:bg-edge/5 hover:text-silver-50"
-              >
-                <X className="h-5 w-5" aria-hidden="true" />
-              </button>
+              <div className="-mr-2 flex items-center">
+                {/* Hidden below sm, where the panel is already a near-fullscreen
+                    sheet and there is nothing to maximize into. The label
+                    carries the state; no aria-pressed, so it is announced once. */}
+                <button
+                  type="button"
+                  onClick={() => setMaximized((v) => !v)}
+                  aria-label={maximized ? 'Restore the assistant' : 'Maximize the assistant'}
+                  className="hidden h-10 w-10 items-center justify-center rounded-md text-silver-300 transition-colors hover:bg-edge/5 hover:text-silver-50 sm:inline-flex"
+                >
+                  {maximized ? (
+                    <Minimize2 className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <Maximize2 className="h-4 w-4" aria-hidden="true" />
+                  )}
+                </button>
+                {/* Stays exactly as it was: closing means minimizing to the
+                    launcher. No third control duplicating it. */}
+                <button
+                  type="button"
+                  onClick={close}
+                  aria-label="Close the assistant"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-md text-silver-300 transition-colors hover:bg-edge/5 hover:text-silver-50"
+                >
+                  <X className="h-5 w-5" aria-hidden="true" />
+                </button>
+              </div>
             </div>
 
             <div ref={logRef} className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
