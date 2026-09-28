@@ -276,24 +276,54 @@ Worth doing if the endpoint ever draws real traffic.
 
 ### Cost exposure
 
-At roughly 2.5K input tokens (cached: ~$0.00025, uncached: ~$0.0025) and ~200
-output tokens (~$0.001) per turn, a turn costs about **$0.002–$0.004** and a
-ten-turn conversation about **$0.03**. A thousand conversations a month is
-roughly **$30**. An attacker who defeats the rate limit is bounded by
-`max_tokens`, not by the limiter — which is why that cap matters.
+**Corrected after the first live pass.** The original figures here assumed
+cached input reads at 0.1x. Caching never engages on this model — see §7 — so
+every turn pays full input price.
+
+Per turn: ~2,016 tokens of system prompt plus ~150 for the tool schema plus the
+conversation so far, at **$1/MTok** input, and ~200 output tokens at **$5/MTok**.
+
+| | Input | Output | Turn |
+|---|---|---|---|
+| First turn (~2.2K in) | ~$0.0022 | ~$0.0010 | **~$0.003** |
+| Tenth turn (~4.2K in, history included) | ~$0.0042 | ~$0.0010 | **~$0.005** |
+
+A ten-turn conversation is therefore about **$0.04**, not the $0.03 claimed
+before, and a thousand conversations a month roughly **$40**. Still small; the
+point is that the number is now measured rather than assumed. An attacker who
+defeats the rate limit is bounded by `max_tokens`, not by the limiter — which
+is why that cap matters.
 
 ## 7. Prompt caching
 
-The system prompt is ~2–3K tokens, comfortably over the ~1,024-token minimum
-cacheable prefix. Mark it with `cache_control: { type: 'ephemeral' }`.
+> **This section was wrong, and the first live pass proved it. Caching does not
+> engage at all.** Corrected below; the original claim is kept visible because
+> the mistake is instructive.
 
-On a low-traffic marketing site many requests will miss the 5-minute TTL, but
-within a single conversation every turn after the first should hit, which is
-where most of the volume is.
+The claim was that the system prompt is "comfortably over the ~1,024-token
+minimum cacheable prefix". That 1,024 figure is the general one. It is not the
+figure for this model: **Haiku 4.5's minimum cacheable prefix is 4,096 tokens**,
+the highest threshold in the per-model table. Always read the per-model row.
 
-**Verify it works** by logging `usage.cache_read_input_tokens`. If it is zero
-across turns of one conversation, something is making the prefix unstable —
-check §5.1.
+The system prompt measures **7,660 characters ≈ 2,016 tokens** as measured
+during the live pass — barely half the threshold. So the
+`cache_control: { type: 'ephemeral' }` marker is **inert**, and nothing has ever
+been cached.
+
+**Measured, not inferred:** `usage.cache_read_input_tokens` was **0 on every
+single request** of the live pass. There is no error and no warning — an
+under-length prefix is simply ignored, which is why this survived review and
+needed a real API key to surface.
+
+**The marker stays.** It costs nothing, and it starts working the moment the
+prompt exceeds 4,096 tokens or the model changes. The byte-stability guarantee
+in §5.1 and its test stay too, for the same reason: they are what make the
+marker useful the day it becomes live.
+
+**Reading the log.** `cacheRead: 0` is the expected value today and is not a
+fault to chase. A *non-zero* value is the interesting one: it means the prompt
+has crossed 4,096 tokens and caching has begun. Only if it goes non-zero and
+then returns to zero is prefix instability the thing to check in §5.1.
 
 ## 8. Lead capture
 
@@ -564,7 +594,7 @@ billable endpoint before the keys are in place.
 | Billable endpoint abused | Payload caps, `max_tokens: 2048`, kill switch — the limiter itself is weak by choice (§6) |
 | Privacy policy becomes inaccurate | §11 ships in the same change, not a follow-up |
 | Lead delivery fails silently, repeating #1 | `deliverEnquiry` throws; both callers surface it |
-| Prompt cache silently stops working | Byte-stable prompt + a test asserting it; verify via `cache_read_input_tokens` |
+| Prompt cache silently stops working | Byte-stable prompt + a test asserting it; verify via `cache_read_input_tokens`. Note: caching is currently never active at all — the prompt is under Haiku 4.5's 4,096-token minimum, see §7 |
 
 ## 15. Open items for Crimson
 

@@ -81,6 +81,14 @@ export async function POST(request: Request): Promise<Response> {
             {
               model: CHAT_MODEL,
               max_tokens: MAX_OUTPUT_TOKENS,
+              // This cache_control marker is INERT on this model today, and
+              // deliberately kept. Haiku 4.5's minimum cacheable prefix is
+              // 4096 tokens; SYSTEM_PROMPT measures ~2,200 — barely half — so
+              // nothing is ever cached. Confirmed live: cache_read_input_tokens
+              // was 0 on every request of the first real API pass. The failure
+              // is silent by design, which is why it took a live run to see.
+              // Retained because it costs nothing and starts working the moment
+              // the prompt grows past 4096 or the model changes. See spec §7.
               system: [
                 { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
               ],
@@ -94,7 +102,10 @@ export async function POST(request: Request): Promise<Response> {
 
           const final = await stream.finalMessage();
 
-          // Cheap signal that prompt caching is actually working (spec section 7).
+          // cacheRead is expected to be 0 on this model — see the note on
+          // cache_control above. It is still logged, because a non-zero value
+          // is exactly the signal that the prompt has grown past Haiku 4.5's
+          // 4096-token threshold and caching has started working.
           console.info('[chat] turn complete', {
             cacheRead: final.usage.cache_read_input_tokens,
             output: final.usage.output_tokens,
