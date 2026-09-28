@@ -1,6 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { captureLeadTool, runCaptureLead } from '@/lib/capture-lead';
+import { captureLeadTool, createLeadBudget } from '@/lib/capture-lead';
 import { CHAT_MODEL, MAX_OUTPUT_TOKENS, MAX_PAYLOAD_CHARS } from '@/lib/chat-config';
+import { describeFailure } from '@/lib/chat-failure';
 import { buildSystemPrompt } from '@/lib/chat-knowledge';
 import { isTerminalStopReason, sseEvent, toAnthropicMessages } from '@/lib/chat-stream';
 import { validateConversation } from '@/lib/chat-validation';
@@ -19,25 +20,6 @@ const getClient = () => (client ??= new Anthropic());
 /** Built once per instance. Must stay byte-stable for prompt caching to work. */
 const SYSTEM_PROMPT = buildSystemPrompt();
 
-/**
- * Spec section 10: distinguish retryable from non-retryable failures using the
- * SDK's typed classes, most specific first. Never string-match error messages,
- * and never let internal detail reach the browser.
- */
-function describeFailure(error: unknown): { message: string; log: string } {
-  if (error instanceof Anthropic.RateLimitError) {
-    return { message: 'The assistant is busy right now — try again in a moment.', log: 'rate limited upstream' };
-  }
-  if (error instanceof Anthropic.AuthenticationError) {
-    // Operator error, not visitor error. Loud, because the endpoint is dead until it is fixed.
-    return { message: 'The assistant is unavailable right now.', log: 'ANTHROPIC_API_KEY is missing or invalid' };
-  }
-  if (error instanceof Anthropic.APIError) {
-    return { message: 'Something went wrong. Please try again.', log: `upstream API error ${error.status}` };
-  }
-  return { message: 'Something went wrong. Please try again.', log: 'unexpected failure' };
-}
-
 const json = (data: unknown, status: number, headers?: HeadersInit) =>
   new Response(JSON.stringify(data), {
     status,
@@ -51,7 +33,7 @@ export async function POST(request: Request): Promise<Response> {
   }
 
   // 2. Rate limit before anything expensive.
-  const limit = rateLimiter.check(clientKeyFromHeaders(request.headers));
+  const limit = await rateLimiter.check(clientKeyFromHeaders(request.headers));
   if (!limit.ok) {
     return json({ error: 'Too many messages. Please wait a moment.' }, 429, {
       'Retry-After': String(limit.retryAfterSeconds ?? 60),
@@ -88,6 +70,9 @@ export async function POST(request: Request): Promise<Response> {
 
       try {
         const conversation = toAnthropicMessages(validation.messages);
+        // One per request, so the 3-iteration loop below cannot multiply lead
+        // emails and neither can parallel tool use within a single message.
+        const leads = createLeadBudget();
 
         // One tool, so at most one round trip after the first. The bound stops a
         // pathological loop from billing without end.
@@ -122,22 +107,23 @@ export async function POST(request: Request): Promise<Response> {
             (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use',
           );
 
+          // Sequential on purpose: one lead may be delivered per request, so
+          // there is nothing to gain from running these concurrently and the
+          // budget's bound is easier to see this way.
+          const toolResults: Anthropic.ToolResultBlockParam[] = [];
+          for (const block of toolUses) {
+            const result = await leads.run(block.input, validation.messages);
+            if (result.ok) send('lead', { ok: true });
+            toolResults.push({
+              type: 'tool_result',
+              tool_use_id: block.id,
+              content: JSON.stringify(result),
+              is_error: !result.ok,
+            });
+          }
+
           conversation.push({ role: 'assistant', content: final.content });
-          conversation.push({
-            role: 'user',
-            content: await Promise.all(
-              toolUses.map(async (block) => {
-                const result = await runCaptureLead(block.input, validation.messages);
-                if (result.ok) send('lead', { ok: true });
-                return {
-                  type: 'tool_result' as const,
-                  tool_use_id: block.id,
-                  content: JSON.stringify(result),
-                  is_error: !result.ok,
-                };
-              }),
-            ),
-          });
+          conversation.push({ role: 'user', content: toolResults });
         }
 
         send('done', {});
@@ -149,7 +135,14 @@ export async function POST(request: Request): Promise<Response> {
           send('error', { message });
         }
       } finally {
-        controller.close();
+        // After a consumer-initiated cancel() the stream is already closed and
+        // this throws TypeError: Invalid state. Nothing is left to do at that
+        // point, so swallow it rather than letting it surface as noise.
+        try {
+          controller.close();
+        } catch {
+          /* already closed by cancel() */
+        }
       }
     },
     cancel() {

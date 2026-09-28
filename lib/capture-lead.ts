@@ -36,6 +36,14 @@ const str = (value: unknown, max: number) =>
   typeof value === 'string' ? value.trim().slice(0, max) : '';
 
 /**
+ * CR/LF in a value that ends up in an email subject line is header-injection
+ * shaped. Resend takes JSON and builds the message itself, so this cannot
+ * actually inject a header — but a newline has no business in a subject, and
+ * the guard is free.
+ */
+const singleLine = (value: string) => value.replace(/[\r\n]+/g, ' ');
+
+/**
  * Executes the tool. The model's output is untrusted input — every field is
  * re-validated here, and every failure comes back as a result the model can
  * recover from rather than an exception that would kill the stream.
@@ -49,9 +57,10 @@ export async function runCaptureLead(
   }
 
   const raw = input as Record<string, unknown>;
-  const name = str(raw.name, 120);
+  // name and company both land in the email subject — keep them to one line.
+  const name = singleLine(str(raw.name, 120));
   const email = str(raw.email, 200);
-  const company = str(raw.company, 160);
+  const company = singleLine(str(raw.company, 160));
   const interest = str(raw.interest, 120);
   const summary = str(raw.summary, 2000);
 
@@ -77,4 +86,45 @@ export async function runCaptureLead(
   }
 
   return { ok: true };
+}
+
+/** At most one lead email may leave a single /api/chat request. */
+export const MAX_LEADS_PER_REQUEST = 1;
+
+export interface LeadBudget {
+  run(input: unknown, transcript: ChatTurn[]): Promise<{ ok: boolean; error?: string }>;
+}
+
+/**
+ * Bounds how many times `capture_lead` may execute within one request.
+ *
+ * Parallel tool use is on by default, so a single assistant message can carry
+ * several `capture_lead` blocks, and the route's tool loop runs up to three
+ * times — so without a cap a visitor who steers the model ("send my details ten
+ * times") has a plausible path to many emails per request, multiplied again by
+ * the per-minute rate limit, all aimed at Crimson's own mailbox. The system
+ * prompt's prompt-injection clause is a mitigation; this is the bound.
+ *
+ * Create one per request. Extras come back as an ordinary recoverable
+ * `tool_result` the model can read, never as an exception.
+ */
+export function createLeadBudget(max: number = MAX_LEADS_PER_REQUEST): LeadBudget {
+  let used = 0;
+
+  return {
+    // The count is claimed synchronously, before the first await, so
+    // concurrently-mapped tool uses cannot both pass the check.
+    async run(input, transcript) {
+      if (used >= max) {
+        return {
+          ok: false,
+          error:
+            'The visitor’s details have already been submitted in this reply. ' +
+            'Do not call this tool again now — tell them the team will be in touch.',
+        };
+      }
+      used += 1;
+      return runCaptureLead(input, transcript);
+    },
+  };
 }

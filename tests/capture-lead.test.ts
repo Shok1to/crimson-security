@@ -5,7 +5,7 @@ vi.mock('@/lib/enquiry-delivery', async (importOriginal) => ({
   deliverEnquiry: vi.fn(),
 }));
 
-import { runCaptureLead, captureLeadTool } from '@/lib/capture-lead';
+import { runCaptureLead, captureLeadTool, createLeadBudget } from '@/lib/capture-lead';
 import { deliverEnquiry } from '@/lib/enquiry-delivery';
 
 const transcript = [{ role: 'user' as const, content: 'Do you do PCI?' }];
@@ -71,5 +71,74 @@ describe('runCaptureLead', () => {
     vi.mocked(deliverEnquiry).mockResolvedValue(undefined);
     await runCaptureLead(valid, transcript);
     expect(vi.mocked(deliverEnquiry).mock.calls[0][0].transcript).toEqual(transcript);
+  });
+
+  // A newline reaching the email subject is header-injection shaped.
+  it('strips CR/LF from the name and company', async () => {
+    vi.mocked(deliverEnquiry).mockResolvedValue(undefined);
+    await runCaptureLead(
+      { ...valid, name: 'Ada\r\nBcc: attacker@example.com', company: 'Ada\nCorp' },
+      transcript,
+    );
+    const delivered = vi.mocked(deliverEnquiry).mock.calls[0][0];
+    expect(delivered.name).not.toMatch(/[\r\n]/);
+    expect(delivered.company).not.toMatch(/[\r\n]/);
+  });
+});
+
+/**
+ * I3: parallel tool use plus a 3-iteration tool loop is a path to many emails
+ * from one unauthenticated request, all aimed at Crimson's own mailbox.
+ */
+describe('createLeadBudget', () => {
+  const valid = {
+    name: 'Ada Lovelace',
+    email: 'ada@example.com',
+    summary: 'Wants a PCI assessment before Q4.',
+  };
+
+  it('runs the first capture_lead', async () => {
+    vi.mocked(deliverEnquiry).mockResolvedValue(undefined);
+    const budget = createLeadBudget();
+    await expect(budget.run(valid, transcript)).resolves.toEqual({ ok: true });
+    expect(deliverEnquiry).toHaveBeenCalledOnce();
+  });
+
+  it('refuses every later capture_lead in the same request without delivering', async () => {
+    vi.mocked(deliverEnquiry).mockResolvedValue(undefined);
+    const budget = createLeadBudget();
+    await budget.run(valid, transcript);
+
+    for (let i = 0; i < 9; i += 1) {
+      const result = await budget.run(valid, transcript);
+      expect(result.ok).toBe(false);
+      expect(result.error).toBeTruthy();
+    }
+    expect(deliverEnquiry).toHaveBeenCalledOnce();
+  });
+
+  it('sends at most one email even when the tool uses are run concurrently', async () => {
+    vi.mocked(deliverEnquiry).mockResolvedValue(undefined);
+    const budget = createLeadBudget();
+    const results = await Promise.all(
+      Array.from({ length: 10 }, () => budget.run(valid, transcript)),
+    );
+    expect(results.filter((r) => r.ok)).toHaveLength(1);
+    expect(deliverEnquiry).toHaveBeenCalledOnce();
+  });
+
+  it('keeps budgets independent between requests', async () => {
+    vi.mocked(deliverEnquiry).mockResolvedValue(undefined);
+    await createLeadBudget().run(valid, transcript);
+    await expect(createLeadBudget().run(valid, transcript)).resolves.toEqual({ ok: true });
+    expect(deliverEnquiry).toHaveBeenCalledTimes(2);
+  });
+
+  // The cap must not become an exception — the model has to be able to read it.
+  it('reports the refusal as a recoverable result, never a throw', async () => {
+    vi.mocked(deliverEnquiry).mockResolvedValue(undefined);
+    const budget = createLeadBudget();
+    await budget.run(valid, transcript);
+    await expect(budget.run(valid, transcript)).resolves.toMatchObject({ ok: false });
   });
 });
