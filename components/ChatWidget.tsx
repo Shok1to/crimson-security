@@ -335,14 +335,19 @@ export default function ChatWidget() {
                   >
                     <span className="sr-only">{turn.role === 'user' ? 'You said: ' : 'Assistant said: '}</span>
                     {turn.content || (
-                      <span className="inline-flex gap-1" aria-label="Thinking">
-                        {[0, 1, 2].map((d) => (
-                          <span
-                            key={d}
-                            className="chat-dot inline-block h-1.5 w-1.5 rounded-full bg-crimson-300"
-                            style={{ animationDelay: `${d * 0.15}s` }}
-                          />
-                        ))}
+                      /* The brand mark rather than three generic dots. role="img"
+                         so the label is actually exposed — this is not inside an
+                         aria-live region, so it is read when focus reaches it and
+                         only the completed turn gets announced. align-middle keeps
+                         the 16px glyph centred on the baseline instead of sitting
+                         on it, so it fits inside the existing line box and the
+                         bubble does not shift when the answer replaces it. */
+                      <span className="inline-flex items-center align-middle" role="img" aria-label="Thinking">
+                        {/* animate-pixel is a pure opacity pulse, already
+                            registered in the prefers-reduced-motion list in
+                            app/globals.css — no new keyframe to remember, and no
+                            transform, so it cannot move anything. */}
+                        <MapleLeaf className="animate-pixel h-4 w-4 text-crimson-300" />
                       </span>
                     )}
                   </li>
