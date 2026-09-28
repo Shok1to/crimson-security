@@ -445,7 +445,13 @@ export default function ChatWidget() {
                 maxLength={MAX_USER_MESSAGE_CHARS}
                 placeholder="Ask a question…"
                 autoComplete="off"
-                className={`${inputClass} py-2.5 text-sm`}
+                /* NO text-sm here. iOS Safari zooms the viewport whenever a
+                   focused form control is under 16px, and the visitor has to
+                   pinch back out. inputClass is text-base for exactly that
+                   reason, which is why the contact form never had the problem.
+                   py-2.5 stays: at 16px it makes a 46px row, which sits level
+                   with the 44px trigger and send buttons beside it. */
+                className={`${inputClass} py-2.5`}
               />
               <button
                 type="submit"
