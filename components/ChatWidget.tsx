@@ -143,25 +143,31 @@ export default function ChatWidget() {
       // The lead reached the team, so this turn succeeded even if no text came
       // back. Speak for the model rather than reporting a failure that did not
       // happen.
-      if (!answer && leadDelivered) answer = LEAD_CONFIRMED;
+      if (!answer.trim() && leadDelivered) answer = LEAD_CONFIRMED;
+
+      // Whitespace-only counts as no answer. validateConversation rejects a
+      // turn whose content trims to nothing, so storing a bare "\n" would
+      // break the NEXT send exactly as a dangling user turn would. The test
+      // matters only for the decision — `answer` is stored as produced.
+      const hasAnswer = answer.trim().length > 0;
 
       // The one place the conversation is written back. settleTurn keeps a
       // partial answer and drops an empty exchange outright, so `turns` always
       // alternates and always starts on `user` — see lib/chat-history.ts.
       setTurns(settleTurn(before, text, answer));
 
-      if (answer) setAnnouncement(answer);
+      if (hasAnswer) setAnnouncement(answer);
 
       // With no answer, no turn survives to show what was asked. Put the
       // question back so the visitor can retry without retyping it — unless
       // they have already started typing something else.
-      if (!answer) setDraft((current) => current || text);
+      if (!hasAnswer) setDraft((current) => current || text);
 
       // A delivered lead means this turn did its job, and an abort is the
       // visitor's own doing. Neither is a failure worth putting on screen.
       if (!leadDelivered && !aborted) {
         if (failure) setError(failure);
-        else if (!answer) setError(GENERIC_ERROR);
+        else if (!hasAnswer) setError(GENERIC_ERROR);
       }
 
       setPending(false);

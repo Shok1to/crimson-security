@@ -38,6 +38,30 @@ describe('settleTurn', () => {
   it('leaves an empty conversation empty when the very first turn fails', () => {
     expect(settleTurn([], 'hi', '')).toEqual([]);
   });
+
+  // A whitespace-only answer is not an answer. validateConversation rejects a
+  // turn whose content trims to nothing, so storing a bare "\n" would break the
+  // NEXT send with "Every message must have content." — the same class of
+  // visitor-facing breakage as a dangling user turn, reached through the model
+  // emitting an empty text delta before a tool_use that exhausts the loop.
+  it.each(['\n', '   ', '\t', '\r\n  \n', '\u00a0'])(
+    'treats the whitespace-only answer %j exactly as an empty one',
+    (blank) => {
+      const before: Turn[] = [
+        { role: 'user', content: 'hi' },
+        { role: 'assistant', content: 'hello' },
+      ];
+      expect(settleTurn(before, 'and PCI?', blank)).toBe(before);
+      expect(settleTurn([], 'hi', blank)).toEqual([]);
+    },
+  );
+
+  it('keeps an answer that merely has surrounding whitespace, verbatim', () => {
+    const settled = settleTurn([], 'hi', '  hello  ');
+    expect(settled).toHaveLength(2);
+    // Only the emptiness DECISION trims; the text is stored as produced.
+    expect(settled[1].content).toBe('  hello  ');
+  });
 });
 
 describe('trimForRequest', () => {
@@ -86,27 +110,50 @@ describe('trimForRequest', () => {
  * them through the same `answer === ''` settle path.
  */
 describe('conversation invariant across any sequence of outcomes', () => {
-  function replay(outcomes: boolean[]) {
+  /**
+   * The three shapes an answer can have when a turn settles. WHITESPACE is its
+   * own case, not a variant of EMPTY: the widget's guard used to be truthiness,
+   * which let a bare "\n" through into history and broke the next send.
+   */
+  const EMPTY = '';
+  const WHITESPACE = ' \n ';
+  const outcomeKinds = [EMPTY, WHITESPACE, 'ANSWER'] as const;
+
+  function replay(outcomes: readonly string[]) {
     let history: Turn[] = [];
     const payloads: Turn[][] = [];
 
-    outcomes.forEach((succeeded, i) => {
+    outcomes.forEach((outcome, i) => {
       const question = `question ${i}`;
       const next: Turn[] = [...history, { role: 'user', content: question }];
       payloads.push(trimForRequest(next));
-      history = settleTurn(history, question, succeeded ? `answer ${i}` : '');
+      history = settleTurn(history, question, outcome === 'ANSWER' ? `answer ${i}` : outcome);
     });
 
     return { history, payloads };
   }
 
-  // 2^6 sequences: every interleaving of success and failure up to six turns.
-  const sequences: boolean[][] = [];
-  for (let length = 1; length <= 6; length += 1) {
-    for (let mask = 0; mask < 1 << length; mask += 1) {
-      sequences.push(Array.from({ length }, (_, bit) => Boolean(mask & (1 << bit))));
+  // Every interleaving of answer / empty / whitespace up to five turns: 363
+  // sequences. A failure here stands for any non-success exit — 503 kill
+  // switch, 429, abort, transient upstream error, an empty stream, or a stream
+  // whose only text was whitespace.
+  const sequences: string[][] = [];
+  for (let length = 1; length <= 5; length += 1) {
+    for (let n = 0; n < 3 ** length; n += 1) {
+      let rest = n;
+      const sequence: string[] = [];
+      for (let slot = 0; slot < length; slot += 1) {
+        sequence.push(outcomeKinds[rest % 3]);
+        rest = Math.floor(rest / 3);
+      }
+      sequences.push(sequence);
     }
   }
+
+  it('covers the whitespace-only case the truthiness guard could not see', () => {
+    expect(sequences).toHaveLength(3 + 9 + 27 + 81 + 243);
+    expect(sequences.some((s) => s.includes(WHITESPACE))).toBe(true);
+  });
 
   it('never leaves a history that does not alternate from the visitor', () => {
     for (const outcomes of sequences) {
@@ -134,7 +181,7 @@ describe('conversation invariant across any sequence of outcomes', () => {
 
   // The reported reproduction, stated directly: fail once, then send again.
   it('accepts the send that follows a failed turn', () => {
-    const { payloads } = replay([true, false, false]);
+    const { payloads } = replay(['ANSWER', EMPTY, WHITESPACE]);
     const last = payloads[payloads.length - 1];
     expect(validateConversation({ messages: last }).ok).toBe(true);
     expect(last.filter((t) => t.role === 'user')).toHaveLength(2);

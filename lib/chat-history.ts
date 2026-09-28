@@ -33,9 +33,16 @@ export interface Turn {
  *   Keeping the question alone would leave the conversation ending on `user`,
  *   which is exactly the corruption above. The caller is responsible for
  *   putting the question back in the draft input so it is not lost.
+ *
+ * "No answer" means trims to nothing, not just the empty string. A bare "\n"
+ * text delta followed by a `tool_use` that exhausts the loop would otherwise be
+ * stored as an assistant turn, and `validateConversation` rejects a turn whose
+ * content trims to nothing ("Every message must have content.") — the same
+ * visitor-facing breakage as the double-user-turn bug, through another door.
+ * Only the DECISION trims; the answer is stored exactly as produced.
  */
 export function settleTurn(before: Turn[], question: string, answer: string): Turn[] {
-  if (!answer) return before;
+  if (!answer.trim()) return before;
   return [
     ...before,
     { role: 'user', content: question },
