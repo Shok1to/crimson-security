@@ -4,37 +4,44 @@ import { createInMemoryRateLimiter, clientKeyFromHeaders } from '@/lib/rate-limi
 afterEach(() => vi.useRealTimers());
 
 describe('createInMemoryRateLimiter', () => {
-  it('allows requests up to the limit', () => {
+  it('allows requests up to the limit', async () => {
     const limiter = createInMemoryRateLimiter(3, 60_000);
-    expect(limiter.check('a').ok).toBe(true);
-    expect(limiter.check('a').ok).toBe(true);
-    expect(limiter.check('a').ok).toBe(true);
+    expect((await limiter.check('a')).ok).toBe(true);
+    expect((await limiter.check('a')).ok).toBe(true);
+    expect((await limiter.check('a')).ok).toBe(true);
   });
 
-  it('blocks the request past the limit and reports a retry delay', () => {
+  it('blocks the request past the limit and reports a retry delay', async () => {
     const limiter = createInMemoryRateLimiter(2, 60_000);
-    limiter.check('a');
-    limiter.check('a');
-    const result = limiter.check('a');
+    await limiter.check('a');
+    await limiter.check('a');
+    const result = await limiter.check('a');
     expect(result.ok).toBe(false);
     expect(result.retryAfterSeconds).toBeGreaterThan(0);
     expect(result.retryAfterSeconds).toBeLessThanOrEqual(60);
   });
 
-  it('keeps separate counts per key', () => {
+  it('keeps separate counts per key', async () => {
     const limiter = createInMemoryRateLimiter(1, 60_000);
-    expect(limiter.check('a').ok).toBe(true);
-    expect(limiter.check('b').ok).toBe(true);
-    expect(limiter.check('a').ok).toBe(false);
+    expect((await limiter.check('a')).ok).toBe(true);
+    expect((await limiter.check('b')).ok).toBe(true);
+    expect((await limiter.check('a')).ok).toBe(false);
   });
 
-  it('allows again once the window expires', () => {
+  it('allows again once the window expires', async () => {
     vi.useFakeTimers();
     const limiter = createInMemoryRateLimiter(1, 60_000);
-    expect(limiter.check('a').ok).toBe(true);
-    expect(limiter.check('a').ok).toBe(false);
+    expect((await limiter.check('a')).ok).toBe(true);
+    expect((await limiter.check('a')).ok).toBe(false);
     vi.advanceTimersByTime(60_001);
-    expect(limiter.check('a').ok).toBe(true);
+    expect((await limiter.check('a')).ok).toBe(true);
+  });
+
+  // Spec section 6: the interface is the swap point for a Redis implementation,
+  // which cannot drop in unless callers already await. Pin the contract.
+  it('returns a promise so an async implementation can replace it', () => {
+    const limiter = createInMemoryRateLimiter(1, 60_000);
+    expect(limiter.check('a')).toBeInstanceOf(Promise);
   });
 });
 

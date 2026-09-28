@@ -5,8 +5,16 @@ export interface RateLimitResult {
   retryAfterSeconds?: number;
 }
 
+/**
+ * Spec section 6 defines this as async on purpose. The in-memory
+ * implementation needs no I/O, but a Redis-backed one does — and the whole
+ * point of the interface is that swapping it means writing a second
+ * implementation and changing one import, with no route changes. A synchronous
+ * signature would force every call site to be edited on the way to Redis,
+ * which is exactly the escape hatch this interface exists to provide.
+ */
 export interface RateLimiter {
-  check(key: string): RateLimitResult;
+  check(key: string): Promise<RateLimitResult>;
 }
 
 interface Window {
@@ -33,7 +41,9 @@ export function createInMemoryRateLimiter(
   const windows = new Map<string, Window>();
 
   return {
-    check(key: string): RateLimitResult {
+    // Async to satisfy the interface; the body below does no I/O and never
+    // yields, so counting stays atomic with respect to concurrent callers.
+    async check(key: string): Promise<RateLimitResult> {
       const now = Date.now();
 
       // Sweep on write so the map cannot grow without bound.
