@@ -5,6 +5,15 @@ import { deliverEnquiry, type ChatTurn } from '@/lib/enquiry-delivery';
 /** Same rule the contact route uses, so both paths agree on what an email is. */
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+/**
+ * The only values `interest` may take: the eight service titles, or 'general'.
+ *
+ * One source for both the schema's enum and the server-side check below, so
+ * the advertised contract and the enforced one cannot drift apart.
+ */
+const INTEREST_VALUES: readonly string[] = [...services.map((s) => s.title), 'general'];
+const ALLOWED_INTERESTS = new Set<string>(INTEREST_VALUES);
+
 export const captureLeadTool: Anthropic.Tool = {
   name: 'capture_lead',
   description:
@@ -19,7 +28,7 @@ export const captureLeadTool: Anthropic.Tool = {
       company: { type: 'string', description: 'Their company, if mentioned.' },
       interest: {
         type: 'string',
-        enum: [...services.map((s) => s.title), 'general'],
+        enum: [...INTEREST_VALUES],
         description: 'Closest matching service, or "general".',
       },
       summary: {
@@ -61,7 +70,14 @@ export async function runCaptureLead(
   const name = singleLine(str(raw.name, 120));
   const email = str(raw.email, 200);
   const company = singleLine(str(raw.company, 160));
-  const interest = str(raw.interest, 120);
+  // This module exists because the model's output is untrusted input, and
+  // every other field is already re-validated here. A schema enum is a strong
+  // hint to the model, not a boundary, so `interest` gets checked too. An
+  // unrecognised value is dropped rather than failing the call: a wrong
+  // interest is not worth losing a real lead over, and deliverEnquiry already
+  // renders a missing one as "general".
+  const claimedInterest = str(raw.interest, 120);
+  const interest = ALLOWED_INTERESTS.has(claimedInterest) ? claimedInterest : '';
   const summary = str(raw.summary, 2000);
 
   if (!name) return { ok: false, error: 'A name is required — ask the visitor for it.' };

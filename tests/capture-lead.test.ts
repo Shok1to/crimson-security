@@ -6,6 +6,7 @@ vi.mock('@/lib/enquiry-delivery', async (importOriginal) => ({
 }));
 
 import { runCaptureLead, captureLeadTool, createLeadBudget } from '@/lib/capture-lead';
+import { services } from '@/lib/content';
 import { deliverEnquiry } from '@/lib/enquiry-delivery';
 
 const transcript = [{ role: 'user' as const, content: 'Do you do PCI?' }];
@@ -71,6 +72,47 @@ describe('runCaptureLead', () => {
     vi.mocked(deliverEnquiry).mockResolvedValue(undefined);
     await runCaptureLead(valid, transcript);
     expect(vi.mocked(deliverEnquiry).mock.calls[0][0].transcript).toEqual(transcript);
+  });
+
+  // A schema enum steers the model; it does not bind it. Every other field is
+  // re-validated here, and interest was the one taking the schema's word.
+  it('drops an interest outside the enum without failing the lead', async () => {
+    vi.mocked(deliverEnquiry).mockResolvedValue(undefined);
+    await expect(
+      runCaptureLead({ ...valid, interest: 'Free pizza delivery' }, transcript),
+    ).resolves.toEqual({ ok: true });
+
+    const delivered = vi.mocked(deliverEnquiry).mock.calls[0][0];
+    expect(delivered.interest).toBeUndefined();
+    expect(JSON.stringify(delivered)).not.toContain('Free pizza');
+  });
+
+  it('keeps an interest that is a real service title', async () => {
+    vi.mocked(deliverEnquiry).mockResolvedValue(undefined);
+    const title = services[0].title;
+    await runCaptureLead({ ...valid, interest: title }, transcript);
+    expect(vi.mocked(deliverEnquiry).mock.calls[0][0].interest).toBe(title);
+  });
+
+  it('keeps the literal "general"', async () => {
+    vi.mocked(deliverEnquiry).mockResolvedValue(undefined);
+    await runCaptureLead({ ...valid, interest: 'general' }, transcript);
+    expect(vi.mocked(deliverEnquiry).mock.calls[0][0].interest).toBe('general');
+  });
+
+  // The advertised contract and the enforced one must not drift apart.
+  it('accepts exactly the values the tool schema advertises', async () => {
+    const schema = captureLeadTool.input_schema as {
+      properties: { interest: { enum: string[] } };
+    };
+    expect(schema.properties.interest.enum).toEqual([...services.map((s) => s.title), 'general']);
+
+    for (const allowed of schema.properties.interest.enum) {
+      vi.mocked(deliverEnquiry).mockReset();
+      vi.mocked(deliverEnquiry).mockResolvedValue(undefined);
+      await runCaptureLead({ ...valid, interest: allowed }, transcript);
+      expect(vi.mocked(deliverEnquiry).mock.calls[0][0].interest, allowed).toBe(allowed);
+    }
   });
 
   // A newline reaching the email subject is header-injection shaped.
