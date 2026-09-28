@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next"
 import { Archivo, Inter } from "next/font/google"
+import ChatWidget from "@/components/ChatWidget"
 import Footer from "@/components/Footer"
 import Header from "@/components/Header"
 import Providers from "@/components/Providers"
@@ -113,6 +114,7 @@ export default function RootLayout({
           <Header />
           <main id="main">{children}</main>
           <Footer />
+          <ChatWidget />
         </Providers>
       </body>
     </html>

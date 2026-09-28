@@ -204,6 +204,13 @@
 .svc-anim { animation-play-state: paused; }
 .group:hover .svc-anim { animation-play-state: running; }
 
+/* Chat typing indicator: three dots breathing in sequence. */
+@keyframes chat-dot {
+  0%, 60%, 100% { opacity: 0.25; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-2px); }
+}
+.chat-dot { animation: chat-dot 1.2s ease-in-out infinite; }
+
 /* Anything that moves on its own stops for reduced-motion users. */
 @media (prefers-reduced-motion: reduce) {
   .animate-glow-a,
@@ -216,7 +223,8 @@
   .animate-rise,
   .svc-scan,
   .svc-dash,
-  .svc-pulse {
+  .svc-pulse,
+  .chat-dot {
     animation: none !important;
   }
   .svc-art {
