@@ -114,13 +114,6 @@ export default function PrivacyPage() {
           {addressCityLine}
           <br />
           <a
-            href={site.phone.href}
-            className="text-crimson-300 underline underline-offset-4 hover:text-silver-50"
-          >
-            {site.phone.display}
-          </a>
-          {' · '}
-          <a
             href={`mailto:${site.emails.info}`}
             className="text-crimson-300 underline underline-offset-4 hover:text-silver-50"
           >

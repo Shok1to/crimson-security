@@ -18,7 +18,7 @@ certifications, and the owner is present on assessments whenever possible.
 Locations:
 ${locationLines}
 
-Contact: ${site.emails.info} · ${site.phone.display}
+Contact: ${site.emails.info} 
 
 ## Services
 ${serviceLines}

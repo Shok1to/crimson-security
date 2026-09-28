@@ -45,14 +45,6 @@ export default function ContactSection() {
 
           <Reveal delay={0.15}>
             <dl className="mt-10 border-t border-edge/10">
-              {/* <Row label="Call us now">
-                <a
-                  href={site.phone.href}
-                  className="font-display text-xl font-bold text-silver-50 transition-colors hover:text-crimson-300"
-                >
-                  {site.phone.display}
-                </a>
-              </Row> */}
               <Row label="Email">
                 <ul className="space-y-1.5">
                   {Object.values(site.emails).map((email) => (

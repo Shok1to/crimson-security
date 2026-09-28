@@ -94,16 +94,6 @@ export default function Footer() {
               Contact
             </h2>
             <div className="mt-5 space-y-5 text-sm text-silver-400">
-              {/* <p>
-                Call us now
-                <br />
-                <a
-                  href={site.phone.href}
-                  className="font-display text-lg font-bold text-white transition-colors hover:text-crimson-300"
-                >
-                  {site.phone.display}
-                </a>
-              </p> */}
               <ul className="space-y-2">
                 {Object.values(site.emails).map((email) => (
                   <li key={email}>

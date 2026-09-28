@@ -73,7 +73,6 @@ const jsonLd = {
   url: site.url,
   logo: `${site.url}/crimson-security-logo.png`,
   image: `${site.url}/opengraph-image.png`,
-  telephone: "+1-800-123-4567",
   email: site.emails.info,
   address: {
     "@type": "PostalAddress",

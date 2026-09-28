@@ -13,10 +13,6 @@ export const site = {
     process.env.NEXT_PUBLIC_SITE_URL ??
     (vercelProd ? `https://${vercelProd}` : "http://localhost:3000"),
   /** Single source of truth for contact details: top bar, contact section, footer, privacy page, JSON-LD. */
-  phone: {
-    display: "1-800-123-4567",
-    href: "tel:+18001234567",
-  },
   emails: {
     info: "info@crimsonsecurityinc.ca",
   },
