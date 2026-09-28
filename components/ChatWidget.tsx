@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from 'framer-motion';
 import Image from 'next/image';
-import { Loader2, Maximize2, Minimize2, Send, X } from 'lucide-react';
+import { Lightbulb, Loader2, Maximize2, Minimize2, Send, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { MAX_USER_MESSAGE_CHARS } from '@/lib/chat-config';
 import { settleTurn, trimForRequest, type Turn } from '@/lib/chat-history';
@@ -25,6 +25,15 @@ const GREETING =
 const GENERIC_ERROR = 'Something went wrong. Please try again.';
 
 /**
+ * Shared by the opening chips and the menu, so the two cannot drift. min-h-11
+ * is the 44px WCAG 2.5.5 floor, matching the send button; py-2.5 comes to 41px
+ * so it gives way to the minimum. silver-300 reads as an action rather than
+ * the muted body silver-400, with silver-100 hover above it.
+ */
+const CHIP_CLASS =
+  'inline-flex min-h-11 items-center rounded-full border border-edge/10 px-4 py-2.5 text-left text-sm leading-snug text-silver-300 transition-colors duration-300 hover:border-silver-400/40 hover:text-silver-100 disabled:cursor-not-allowed disabled:opacity-60';
+
+/**
  * Stands in when a lead was delivered but the model produced no closing text,
  * which happens if the tool loop exhausts its iterations still in `tool_use`.
  * Reporting failure after the details were emailed is the bug, inverted.
@@ -36,6 +45,8 @@ export default function ChatWidget() {
   const [open, setOpen] = useState(false);
   /** Purely presentational — it never touches `turns`. */
   const [maximized, setMaximized] = useState(false);
+  /** The suggestions menu behind the input-row trigger. */
+  const [menuOpen, setMenuOpen] = useState(false);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState('');
   const [pending, setPending] = useState(false);
@@ -59,12 +70,21 @@ export default function ChatWidget() {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') close();
+      if (e.key !== 'Escape') return;
+      // Innermost layer first. Handled here rather than in a second listener
+      // so precedence is an early return, not the order two listeners happen
+      // to be registered in — Escape must never close the whole assistant
+      // while the menu is open.
+      if (menuOpen) {
+        setMenuOpen(false);
+        return;
+      }
+      close();
     };
     window.addEventListener('keydown', onKey);
     inputRef.current?.focus();
     return () => window.removeEventListener('keydown', onKey);
-  }, [open, close]);
+  }, [open, close, menuOpen]);
 
   // Keep the newest turn in view as it streams.
   useEffect(() => {
@@ -304,12 +324,11 @@ export default function ChatWidget() {
                 {GREETING}
               </p>
 
-              {/* A way in without typing. Starting affordance only, so it goes
-                  as soon as there is a conversation — not a persistent menu.
-                  flex-wrap keeps it off a horizontal scrollbar when narrow;
-                  at text-sm these take more rows on a phone, which is the
-                  right trade for reaching the 44px target below. */}
-              {turns.length === 0 && (
+              {/* A way in without typing, for an empty conversation. The
+                  same four questions stay reachable all conversation long from
+                  the trigger in the input row; this stands down while that
+                  menu is open rather than showing them twice. */}
+              {turns.length === 0 && !menuOpen && (
                 <div role="group" aria-label="Suggested questions" className="flex flex-wrap gap-2">
                   {QUICK_REPLIES.map((question) => (
                     <button
@@ -317,12 +336,7 @@ export default function ChatWidget() {
                       type="button"
                       onClick={() => void sendMessage(question)}
                       disabled={pending}
-                      /* min-h-11 is the 44px WCAG 2.5.5 floor, matching the
-                         send button; py-2.5 comes to 41px so it gives way to
-                         the minimum. silver-400 is the muted BODY token and
-                         read as a caption here, so an action gets silver-300
-                         (10.3:1) with silver-100 hover above it. */
-                      className="inline-flex min-h-11 items-center rounded-full border border-edge/10 px-4 py-2.5 text-left text-sm leading-snug text-silver-300 transition-colors duration-300 hover:border-silver-400/40 hover:text-silver-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      className={CHIP_CLASS}
                     >
                       {question}
                     </button>
@@ -374,7 +388,52 @@ export default function ChatWidget() {
               {announcement}
             </div>
 
+            {/* Always in the DOM so aria-controls on the trigger always
+                resolves; display carries the open state. The native hidden
+                attribute would lose to the flex class, since an author rule
+                beats the UA [hidden] rule whatever the specificity. shrink-0
+                keeps its height, so the log gives way instead of the panel
+                overflowing. */}
+            <div
+              id="chat-suggestions"
+              role="group"
+              aria-label="Suggested questions"
+              className={`${menuOpen ? 'flex' : 'hidden'} shrink-0 flex-wrap gap-2 border-t border-edge/10 px-5 py-4`}
+            >
+              {QUICK_REPLIES.map((question) => (
+                <button
+                  key={question}
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    void sendMessage(question);
+                  }}
+                  disabled={pending}
+                  className={CHIP_CLASS}
+                >
+                  {question}
+                </button>
+              ))}
+            </div>
+
             <form onSubmit={onSubmit} className="flex shrink-0 items-center gap-2 border-t border-edge/10 px-5 py-4">
+              {/* Left of the input: the send button keeps its position and
+                  its crimson weight, and a control that composes is not sat
+                  next to the one that sends. A disclosure widget, so
+                  aria-expanded and aria-controls do the work; the label
+                  reflects state on its own, as the maximize control does, and
+                  aria-pressed alongside it would announce the state twice. */}
+              <button
+                type="button"
+                onClick={() => setMenuOpen((v) => !v)}
+                aria-expanded={menuOpen}
+                aria-controls="chat-suggestions"
+                aria-label={menuOpen ? 'Hide suggested questions' : 'Show suggested questions'}
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-silver-300 transition-colors hover:bg-edge/5 hover:text-silver-50"
+              >
+                <Lightbulb className="h-5 w-5" aria-hidden="true" />
+              </button>
+
               <label htmlFor="chat-input" className="sr-only">
                 Your message
               </label>
