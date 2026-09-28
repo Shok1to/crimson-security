@@ -96,7 +96,7 @@ export interface LeadBudget {
 }
 
 /**
- * Bounds how many times `capture_lead` may execute within one request.
+ * Bounds how many leads may be DELIVERED within one request.
  *
  * Parallel tool use is on by default, so a single assistant message can carry
  * several `capture_lead` blocks, and the route's tool loop runs up to three
@@ -105,26 +105,45 @@ export interface LeadBudget {
  * the per-minute rate limit, all aimed at Crimson's own mailbox. The system
  * prompt's prompt-injection clause is a mitigation; this is the bound.
  *
+ * The cap counts successful deliveries, not attempts. An attempt that fails
+ * `runCaptureLead`'s validation — a malformed email, a missing name — sends no
+ * mail and so contributes nothing to the risk this bounds, while counting it
+ * would break the recovery the tool was designed around: the model is handed
+ * "That email address is not valid — ask the visitor to confirm it" precisely
+ * so it can ask and try again in the same request.
+ *
  * Create one per request. Extras come back as an ordinary recoverable
  * `tool_result` the model can read, never as an exception.
  */
 export function createLeadBudget(max: number = MAX_LEADS_PER_REQUEST): LeadBudget {
-  let used = 0;
+  let delivered = 0;
+  /**
+   * Attempts that have not resolved yet. A slot is claimed synchronously,
+   * before the first await, and released whether the attempt succeeds or
+   * fails — so concurrently-mapped tool uses cannot both reach delivery, while
+   * a failed attempt still leaves the budget free for a retry.
+   */
+  let inFlight = 0;
 
   return {
-    // The count is claimed synchronously, before the first await, so
-    // concurrently-mapped tool uses cannot both pass the check.
     async run(input, transcript) {
-      if (used >= max) {
+      if (delivered + inFlight >= max) {
         return {
           ok: false,
           error:
-            'The visitor’s details have already been submitted in this reply. ' +
-            'Do not call this tool again now — tell them the team will be in touch.',
+            'The visitor’s details have already been sent to the team in this reply. ' +
+            'Do not call this tool again now — tell them someone will be in touch.',
         };
       }
-      used += 1;
-      return runCaptureLead(input, transcript);
+
+      inFlight += 1;
+      try {
+        const result = await runCaptureLead(input, transcript);
+        if (result.ok) delivered += 1;
+        return result;
+      } finally {
+        inFlight -= 1;
+      }
     },
   };
 }
