@@ -1,7 +1,8 @@
 'use client';
 
 import { AnimatePresence, motion } from 'framer-motion';
-import { Loader2, Maximize2, Minimize2, Send, ShieldCheck, X } from 'lucide-react';
+import Image from 'next/image';
+import { Loader2, Maximize2, Minimize2, Send, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { MAX_USER_MESSAGE_CHARS } from '@/lib/chat-config';
 import { settleTurn, trimForRequest, type Turn } from '@/lib/chat-history';
@@ -195,14 +196,32 @@ export default function ChatWidget() {
         aria-label="Open the Crimson Security assistant"
         aria-expanded={open}
         aria-controls="chat-panel"
-        className="fixed bottom-6 right-6 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full bg-crimson-button text-white shadow-crimson-cta transition-all duration-300 hover:bg-crimson-button-hover hover:shadow-crimson-cta-hover"
+        /* The real mark, so the entry point is the brand rather than a
+           stand-in for it — but that forces the surface to change with it. The
+           mark is largely crimson with silver detail, so on the old
+           bg-crimson-button its crimson would have sunk into the fill and only
+           the "C" would have read: muddy, and it would have looked like a
+           mistake. ink-800 is one step off the ink-900 page base, enough to
+           separate without reading as a hole, and silver-border supplies the
+           same rim the panel and the cards use rather than a hand-rolled one.
+           shadow-crimson-cta stays on both states: with the crimson fill gone
+           that glow is the only thing making this findable on a dark page. */
+        className="silver-border fixed bottom-6 right-6 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full bg-ink-800 shadow-crimson-cta transition-all duration-300 hover:bg-ink-700 hover:shadow-crimson-cta-hover"
       >
-        {/* A shield rather than a speech bubble: the entry point should read as
-            security, and it echoes the shield in the site's own logo mark.
-            Keeping strokeWidth 1.8 — heavier than the 1.5 the in-content
-            service icons use, because this is white on saturated crimson at
-            24px, where 1.5 goes thin and loses the CTA's presence. */}
-        <ShieldCheck className="h-6 w-6" strokeWidth={1.8} aria-hidden="true" />
+        {/* 36px inside the 56px button. The mark carries a shield, a leaf and a
+            "C", which would have turned to mush in the old 24px icon slot; 36
+            is the top of the sensible range here and still leaves a 10px ring
+            of surface. The asset is 667px square, so there is ample resolution
+            even at 3x. Decorative — the button's aria-label names the action,
+            exactly as Header.tsx and Footer.tsx treat the same file. */}
+        <Image
+          src="/crimson-security-mark.png"
+          alt=""
+          width={36}
+          height={36}
+          sizes="36px"
+          className="h-9 w-9 object-contain"
+        />
       </button>
 
       <AnimatePresence>
