@@ -246,17 +246,23 @@ export default function ChatWidget() {
               // largest one, so the only way back to the page was to close the
               // assistant. Unmaximized it is now a sheet the page shows above.
               //
+              // Mobile heights are dvh, not vh: vh is the LAYOUT viewport, which
+              // stays tall while the address bar is showing, so the bottom of
+              // the panel — the input row — hides behind browser chrome. dvh
+              // tracks the visual viewport as that chrome collapses. Hero.tsx
+              // uses 100svh for the same reason.
+              //
               // Maximized, .card-surface (90% opaque) collects too much
               // background, so bg-ink-900/95 sits under its gradient — a
               // longhand, so it does not replace the shorthand. That pair is
               // sm: only. DO NOT edit .card-surface; four components share it.
               // The blur is edge softness, never verified as sufficient alone.
               maximized
-                ? 'top-[4.5rem] h-[calc(100vh-4.5rem)] sm:inset-x-6 sm:bottom-6 sm:top-[5.5rem] sm:h-auto sm:w-auto sm:bg-ink-900/95 sm:backdrop-blur-xl'
-                : 'bottom-0 h-[80vh] sm:inset-x-auto sm:bottom-6 sm:right-6 sm:top-auto sm:h-[36rem] sm:w-[24rem]'
+                ? 'top-[4.5rem] h-[calc(100dvh-4.5rem)] sm:inset-x-6 sm:bottom-6 sm:top-[5.5rem] sm:h-auto sm:w-auto sm:bg-ink-900/95 sm:backdrop-blur-xl'
+                : 'bottom-0 h-[80dvh] sm:inset-x-auto sm:bottom-6 sm:right-6 sm:top-auto sm:h-[36rem] sm:w-[24rem]'
             }`}
           >
-            <div className="flex items-center justify-between border-b border-edge/10 px-5 py-4">
+            <div className="flex shrink-0 items-center justify-between border-b border-edge/10 px-5 py-4">
               <h2 id="chat-heading" className="flex items-center gap-2.5 font-display text-base font-bold text-silver-50">
                 <MapleLeaf className="h-4 w-4 shrink-0 text-crimson-400" />
                 Ask Crimson
@@ -289,7 +295,11 @@ export default function ChatWidget() {
               </div>
             </div>
 
-            <div ref={logRef} className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+            {/* min-h-0 is load-bearing: a flex item defaults to min-height
+                auto, so without it a long conversation grows the log past the
+                panel and pushes the input row out of view instead of
+                scrolling inside it. */}
+            <div ref={logRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
               <p className="rounded-xl border border-edge/10 bg-edge/[0.02] p-4 text-sm leading-relaxed text-silver-200">
                 {GREETING}
               </p>
@@ -364,7 +374,7 @@ export default function ChatWidget() {
               {announcement}
             </div>
 
-            <form onSubmit={onSubmit} className="flex items-center gap-2 border-t border-edge/10 px-5 py-4">
+            <form onSubmit={onSubmit} className="flex shrink-0 items-center gap-2 border-t border-edge/10 px-5 py-4">
               <label htmlFor="chat-input" className="sr-only">
                 Your message
               </label>
