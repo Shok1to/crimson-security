@@ -4,15 +4,24 @@ import { differentiators, services } from '@/lib/content';
  * Opening suggestions for the chat panel — a way in for a visitor who would
  * rather tap than type, which matters most on a phone.
  *
- * Each one names the entry in `lib/content.ts` (or `lib/site.ts`) it is
- * grounded in, and that entry is verified to still exist when this module
- * loads. `lib/chat-knowledge.ts` builds the system prompt from the same
- * modules, so a suggestion can only ask something the assistant actually has
- * the facts to answer. Rename a service and this throws at build time rather
- * than quietly leaving a button that invites "I don't have that detail".
+ * Each one names the entry in `lib/content.ts` it is grounded in, and that
+ * entry is verified to still exist when this module loads.
+ * `lib/chat-knowledge.ts` builds the system prompt from the same modules, so a
+ * suggestion can only ask something the assistant actually has the facts to
+ * answer. Rename a service and this throws at build time rather than quietly
+ * leaving a button that invites "I don't have that detail".
  *
  * Questions are phrased the way a visitor would ask them, not the way the site
- * labels things. Keep the list short — it is a starting affordance, not a menu.
+ * labels things.
+ *
+ * FOUR, and the count is load-bearing. Once the chips reached their 44px
+ * accessibility floor, six of them ran to 320px — three quarters of the
+ * visible scroll area — and the last one was clipped on first open, so the
+ * greeting was crowded and the visitor met a wall of buttons. 44px is a floor,
+ * not a preference, so the count gives way instead: two single-service
+ * openers, one spanning two services, and the most distinctive policy. Adding
+ * a fifth means re-measuring the panel, which is what the count assertion in
+ * tests/quick-replies.test.ts is there to force.
  */
 interface QuickReply {
   /** What the visitor sees and sends. */
@@ -35,19 +44,8 @@ const QUICK_REPLY_SOURCE: readonly QuickReply[] = [
     grounding: ['No Limit Policy'],
   },
   {
-    question: 'What certifications do your technicians hold?',
-    grounding: ['No Hacker Policy'],
-  },
-  {
     question: 'Do you handle incident response and forensics?',
     grounding: ['Incident Response Services', 'Forensic Analysis Services'],
-  },
-  {
-    // Answered from the knowledge base's CONTACT block, which is built from
-    // site.address and site.locations — both non-optional literals in
-    // lib/site.ts, so there is no content title to pin.
-    question: 'Where in Canada are you based?',
-    grounding: [],
   },
 ];
 
