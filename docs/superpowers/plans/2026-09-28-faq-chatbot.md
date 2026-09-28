@@ -955,8 +955,12 @@ describe('POST /api/chat guards', () => {
 
   it('returns 429 with Retry-After once the rate limit is exceeded', async () => {
     const ip = { 'x-forwarded-for': '198.51.100.3' };
-    for (let i = 0; i < RATE_LIMIT_MAX; i += 1) await post(oneTurn, ip);
-    const res = await post(oneTurn, ip);
+    // Warm the window with MALFORMED bodies on purpose. The rate limiter runs
+    // before JSON parsing, so each of these counts against the window and then
+    // returns 400 — without ever reaching the model. Using a *valid* body here
+    // would send 15 live requests to Anthropic once Task 7 lands.
+    for (let i = 0; i < RATE_LIMIT_MAX; i += 1) await post('{not json', ip);
+    const res = await post('{not json', ip);
     expect(res.status).toBe(429);
     expect(Number(res.headers.get('Retry-After'))).toBeGreaterThan(0);
   });
