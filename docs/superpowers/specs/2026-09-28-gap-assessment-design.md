@@ -102,12 +102,106 @@ Why this is the right architecture, not just the easy one:
 irrelevant areas are skipped — but the branching is data in the question bank,
 not model judgment. Hard ceiling of 12 questions.
 
-### 4.2 Where the model is still used
+### 4.2 Prepared responses
+
+Every question ships its own answer set — this is what "prepared responses"
+means in practice, and it is the reason the flow can be client-driven at all.
+Each option carries three things:
+
+| Field | Purpose |
+|---|---|
+| `label` | What the visitor taps |
+| `serviceIds` | Which Crimson services this answer implicates (validated against `lib/content.ts`) |
+| `next` | Which question follows, or `null` to end the branch |
+
+Option sets are written per question, not shared, because a generic
+Yes/No/Not-sure ladder produces a scoping brief nobody can act on. "Have you
+been formally assessed before?" wants *Never / Within the last year / More than
+a year ago / I'm not sure*; "Who gets called at 3am?" wants *We have an on-call
+rotation / One person informally / Nobody yet / Not sure*. The specificity is
+the value.
+
+Every question also carries **"Something else"**, which opens a length-capped
+free-text field. The options will not cover everyone, and a visitor who cannot
+answer honestly will abandon.
+
+### 4.3 Where the model is still used
 
 Two places only:
 1. The existing conversational FAQ, unchanged.
 2. One call at the end of an intake to write the neutral summary (§5), given the
    structured answers. Constrained by §6.
+
+## 4A. Session and reset
+
+An **assessment session** is one visitor's pass through the questionnaire. It is
+client-side state in `ChatWidget`, not a server record — consistent with the
+ephemeral decision inherited from the chatbot spec.
+
+### 4A.1 States
+
+```
+idle ──"Run a gap check"──▶ in_progress(questionIndex, answers[])
+                                │
+                                ├──all questions answered──▶ intake(name, email, company?)
+                                │                                │
+                                │                        submit or skip
+                                │                                ▼
+                                └───────"Start over"──────── submitted ──▶ summary + disclaimer
+                                                                 │
+                                                          "Start over"
+```
+
+### 4A.2 Reset
+
+A **"Start over"** control is available during the questionnaire and after the
+summary. It clears `answers`, returns to the first question, and leaves the FAQ
+conversation untouched — the two are separate concerns sharing a panel.
+
+Reset is deliberately *not* a confirmation dialog. It costs a visitor a minute
+to redo and a dialog on a marketing widget is friction for its own sake.
+
+Once a brief has been delivered, reset does **not** retract it — Crimson already
+has it. A second run produces a second brief; the email says which attempt it is
+so nobody treats two briefs from one visitor as two leads.
+
+### 4A.3 Does the session survive a page reload?
+
+**No — and that is a decision, not an oversight.** State lives in React state
+only. Reload and the assessment starts over.
+
+Persisting it would mean `localStorage`, which puts self-reported security
+posture on the visitor's disk under this site's origin — data a privacy policy
+then has to disclose, with a retention story attached. For a questionnaire
+capped at 12 taps, that is a poor trade.
+
+*If Crimson wants resumability later, that is a deliberate follow-up with its
+own privacy section, not a quiet addition.*
+
+## 4B. Lead intake
+
+The questionnaire ends in an intake step, because a scoping brief with no way to
+reach the visitor is research, not a lead.
+
+**The step asks for:** name, work email, company (optional). Free text, not
+buttons — an email address cannot be a prepared response. It reuses the shared
+field styles from `lib/field-styles.ts`, so it matches the contact form and the
+chat input.
+
+**Skipping is allowed and the brief is still delivered**, flagged
+`contact: none given`. An anonymous brief is worth less than a named one but far
+more than nothing: it tells Crimson what visitors are actually asking about.
+Blocking the summary behind a contact form would be the more coercive design and
+would cost more leads than it wins.
+
+**Validation** reuses the same `EMAIL_RE` the contact route and `capture_lead`
+already use, applied server-side. The client's copy is a convenience, never the
+guard.
+
+**This does not replace `capture_lead`.** That tool stays for the conversational
+path, where a visitor volunteers details mid-chat. The intake step is the
+structured path. Both end at `deliverEnquiry`, and the email states which path
+produced the enquiry.
 
 **Never asks for anything sensitive.** No IP ranges, hostnames, vendor names,
 tooling versions, credentials, or architecture detail. Those belong in a signed
