@@ -241,16 +241,19 @@ export default function ChatWidget() {
             // prefers-reduced-motion list in app/globals.css.
             layout
             transition={{ duration: 0.35, ease: EASE }}
-            className={`silver-border card-surface fixed inset-x-0 bottom-0 top-[4.5rem] z-50 flex flex-col overflow-hidden rounded-t-3xl shadow-card sm:rounded-3xl ${
-              // Only the sm: classes differ; below that it is already a sheet.
+            className={`silver-border card-surface fixed inset-x-0 z-50 flex flex-col overflow-hidden rounded-t-3xl shadow-card sm:rounded-3xl ${
+              // Two sizes on every breakpoint. Mobile used to be stuck in the
+              // largest one, so the only way back to the page was to close the
+              // assistant. Unmaximized it is now a sheet the page shows above.
+              //
               // Maximized, .card-surface (90% opaque) collects too much
               // background, so bg-ink-900/95 sits under its gradient — a
-              // longhand, so it does not replace the shorthand. This branch
-              // only. DO NOT edit .card-surface; four components share it. The
-              // blur is edge softness, never verified as sufficient alone.
+              // longhand, so it does not replace the shorthand. That pair is
+              // sm: only. DO NOT edit .card-surface; four components share it.
+              // The blur is edge softness, never verified as sufficient alone.
               maximized
-                ? 'sm:inset-x-6 sm:bottom-6 sm:top-[5.5rem] sm:h-auto sm:w-auto sm:bg-ink-900/95 sm:backdrop-blur-xl'
-                : 'sm:inset-x-auto sm:bottom-6 sm:right-6 sm:top-auto sm:h-[36rem] sm:w-[24rem]'
+                ? 'top-[4.5rem] h-[calc(100vh-4.5rem)] sm:inset-x-6 sm:bottom-6 sm:top-[5.5rem] sm:h-auto sm:w-auto sm:bg-ink-900/95 sm:backdrop-blur-xl'
+                : 'bottom-0 h-[80vh] sm:inset-x-auto sm:bottom-6 sm:right-6 sm:top-auto sm:h-[36rem] sm:w-[24rem]'
             }`}
           >
             <div className="flex items-center justify-between border-b border-edge/10 px-5 py-4">
@@ -259,14 +262,13 @@ export default function ChatWidget() {
                 Ask Crimson
               </h2>
               <div className="-mr-2 flex items-center">
-                {/* Hidden below sm, where the panel is already a near-fullscreen
-                    sheet and there is nothing to maximize into. The label
+                {/* Shown at every width: mobile has two sizes too. The label
                     carries the state; no aria-pressed, so it is announced once. */}
                 <button
                   type="button"
                   onClick={() => setMaximized((v) => !v)}
                   aria-label={maximized ? 'Restore the assistant' : 'Maximize the assistant'}
-                  className="hidden h-10 w-10 items-center justify-center rounded-md text-silver-300 transition-colors hover:bg-edge/5 hover:text-silver-50 sm:inline-flex"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-md text-silver-300 transition-colors hover:bg-edge/5 hover:text-silver-50"
                 >
                   {maximized ? (
                     <Minimize2 className="h-4 w-4" aria-hidden="true" />
