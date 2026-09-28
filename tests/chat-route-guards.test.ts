@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { validateConversation } from '@/app/api/chat/route';
+import { validateConversation } from '@/lib/chat-validation';
 import { MAX_MESSAGES, MAX_USER_MESSAGE_CHARS } from '@/lib/chat-config';
 
 const turn = (role: 'user' | 'assistant', content: string) => ({ role, content });
