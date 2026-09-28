@@ -112,24 +112,12 @@ export interface LeadBudget {
 }
 
 /**
- * Bounds how many leads may be DELIVERED within one request.
- *
- * Parallel tool use is on by default, so a single assistant message can carry
- * several `capture_lead` blocks, and the route's tool loop runs up to three
- * times — so without a cap a visitor who steers the model ("send my details ten
- * times") has a plausible path to many emails per request, multiplied again by
- * the per-minute rate limit, all aimed at Crimson's own mailbox. The system
- * prompt's prompt-injection clause is a mitigation; this is the bound.
- *
- * The cap counts successful deliveries, not attempts. An attempt that fails
- * `runCaptureLead`'s validation — a malformed email, a missing name — sends no
- * mail and so contributes nothing to the risk this bounds, while counting it
- * would break the recovery the tool was designed around: the model is handed
- * "That email address is not valid — ask the visitor to confirm it" precisely
- * so it can ask and try again in the same request.
- *
- * Create one per request. Extras come back as an ordinary recoverable
- * `tool_result` the model can read, never as an exception.
+ * Bounds how many leads may be DELIVERED per request — parallel tool use plus
+ * a three-iteration loop is otherwise a path to many emails from one request.
+ * Deliveries, not attempts: a validation failure sends no mail, and counting
+ * it would block the retry `runCaptureLead`'s recoverable errors allow for.
+ * Create one per request; extras return a `tool_result` the model can read,
+ * never an exception.
  */
 export function createLeadBudget(max: number = MAX_LEADS_PER_REQUEST): LeadBudget {
   let delivered = 0;

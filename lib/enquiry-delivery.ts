@@ -39,14 +39,10 @@ function renderBody(e: Enquiry): string {
 }
 
 /**
- * CR/LF has no place in an email subject. Both current callers already strip
- * it, and they keep doing so — but this module is the shared boundary every
- * enquiry passes through, and a third caller is already specified. Defending
- * only at the call sites makes the invariant hold exactly as long as every
- * future caller remembers, so it is enforced here too, at the point of use.
- *
- * Resend takes JSON and builds the message itself, so this cannot actually
- * inject a header. It is defence in depth, and it is free.
+ * CR/LF has no place in an email subject. Both callers strip it too, but this
+ * module is the shared boundary every enquiry crosses, so the invariant must
+ * not depend on each future caller remembering. Resend takes JSON and builds
+ * the message itself, so this cannot actually inject a header.
  */
 const subjectSafe = (value: string) => value.replace(/[\r\n]+/g, ' ');
 

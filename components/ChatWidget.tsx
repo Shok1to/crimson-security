@@ -10,6 +10,12 @@ import { inputClass } from '@/lib/field-styles';
 import { QUICK_REPLIES } from '@/lib/quick-replies';
 import MapleLeaf from './MapleLeaf';
 
+/**
+ * Mounted at layout level, outside <main>, and it must stay outside any
+ * `.theme-light` ancestor: that class flips the silver/ink tokens for a light
+ * section, which would leave this panel light text on a light surface.
+ */
+
 /** The site's signature curve — matches Reveal.tsx and the capability panel. */
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -19,10 +25,9 @@ const GREETING =
 const GENERIC_ERROR = 'Something went wrong. Please try again.';
 
 /**
- * Stands in when a lead was delivered but the model produced no closing text —
- * the tool loop can exhaust its iterations still in `tool_use`. Telling the
- * visitor it failed after their details were already emailed is the exact
- * mirror of the silent-discard bug this branch exists to fix.
+ * Stands in when a lead was delivered but the model produced no closing text,
+ * which happens if the tool loop exhausts its iterations still in `tool_use`.
+ * Reporting failure after the details were emailed is the bug, inverted.
  */
 const LEAD_CONFIRMED =
   "Thanks — I've passed your details to the Crimson Security team. They'll follow up by email.";
@@ -196,24 +201,15 @@ export default function ChatWidget() {
         aria-label="Open the Crimson Security assistant"
         aria-expanded={open}
         aria-controls="chat-panel"
-        /* The real mark, so the entry point is the brand rather than a
-           stand-in for it — but that forces the surface to change with it. The
-           mark is largely crimson with silver detail, so on the old
-           bg-crimson-button its crimson would have sunk into the fill and only
-           the "C" would have read: muddy, and it would have looked like a
-           mistake. ink-800 is one step off the ink-900 page base, enough to
-           separate without reading as a hole, and silver-border supplies the
-           same rim the panel and the cards use rather than a hand-rolled one.
-           shadow-crimson-cta stays on both states: with the crimson fill gone
-           that glow is the only thing making this findable on a dark page. */
+        /* The mark is mostly crimson, so it needs a non-crimson surface or it
+           sinks into the fill. ink-800 sits one step off the ink-900 page base.
+           Keep shadow-crimson-cta on both states: without the crimson fill, the
+           glow is the only thing making this findable on a dark page. */
         className="silver-border fixed bottom-6 right-6 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full bg-ink-800 shadow-crimson-cta transition-all duration-300 hover:bg-ink-700 hover:shadow-crimson-cta-hover"
       >
-        {/* 36px inside the 56px button. The mark carries a shield, a leaf and a
-            "C", which would have turned to mush in the old 24px icon slot; 36
-            is the top of the sensible range here and still leaves a 10px ring
-            of surface. The asset is 667px square, so there is ample resolution
-            even at 3x. Decorative — the button's aria-label names the action,
-            exactly as Header.tsx and Footer.tsx treat the same file. */}
+        {/* 36px in a 56px button: the shield, leaf and "C" need the size, and
+            it still leaves a ring of surface. Decorative, as in Header.tsx and
+            Footer.tsx — the button's aria-label names the action. */}
         <Image
           src="/crimson-security-mark.png"
           alt=""
@@ -239,43 +235,19 @@ export default function ChatWidget() {
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 8 }}
-            // `layout` is what animates the maximize/restore size change, using
-            // the transition below — the site's easing at 0.35s. Framer is
-            // wrapped in MotionConfig reducedMotion="user", so this is covered
-            // without a CSS keyframe that would have to be remembered in the
+            // `layout` animates the maximize/restore size change. Framer is
+            // wrapped in MotionConfig reducedMotion="user"; a CSS keyframe
+            // would instead have to be registered by name in the
             // prefers-reduced-motion list in app/globals.css.
             layout
             transition={{ duration: 0.35, ease: EASE }}
             className={`silver-border card-surface fixed inset-x-0 bottom-0 top-[4.5rem] z-50 flex flex-col overflow-hidden rounded-t-3xl shadow-card sm:rounded-3xl ${
-              // Below sm the panel is already a near-fullscreen sheet, so only
-              // the sm: classes differ. Maximized leaves the 4.5rem site header
-              // clear and keeps a margin on the other three sides.
-              //
-              // It also gets a near-opaque surface and a backdrop blur.
-              // OBSERVED: .card-surface is 90% opaque with no backdrop-filter.
-              // That reads as depth at the restored size, but collects too much
-              // background when the panel is most of the viewport — the hero
-              // showed through the message area.
-              //
-              // NOT OBSERVED: whether the blur alone would have been enough.
-              // Nobody has seen it. The screenshot path used to check this does
-              // not composite backdrop-filter, so it cannot represent the blur
-              // either way — an early reading that said blur was insufficient
-              // was that artifact, not the browser.
-              //
-              // So bg-ink-900/95 is the load-bearing part, chosen because it IS
-              // verifiable through that path: under uncertainty, prefer the
-              // mechanism you can confirm. .card-surface sets `background` as a
-              // shorthand in @layer components, so this background-color
-              // utility from @layer utilities lands underneath the gradient
-              // rather than replacing it. The blur is kept for edge softness.
-              //
-              // Both are confined to this branch: the restored card is
-              // untouched and still measures backdropFilter "none", and
-              // .card-surface itself is not edited, so ContactSection,
-              // CapabilityTabs, ServicesGrid and StoryCards are unaffected —
-              // they are in-flow over backgrounds their own section controls,
-              // which is the assumption this fixed-position panel broke.
+              // Only the sm: classes differ; below that it is already a sheet.
+              // Maximized, .card-surface (90% opaque) collects too much
+              // background, so bg-ink-900/95 sits under its gradient — a
+              // longhand, so it does not replace the shorthand. This branch
+              // only. DO NOT edit .card-surface; four components share it. The
+              // blur is edge softness, never verified as sufficient alone.
               maximized
                 ? 'sm:inset-x-6 sm:bottom-6 sm:top-[5.5rem] sm:h-auto sm:w-auto sm:bg-ink-900/95 sm:backdrop-blur-xl'
                 : 'sm:inset-x-auto sm:bottom-6 sm:right-6 sm:top-auto sm:h-[36rem] sm:w-[24rem]'
@@ -333,20 +305,11 @@ export default function ChatWidget() {
                       type="button"
                       onClick={() => void sendMessage(question)}
                       disabled={pending}
-                      /* min-h-11 is 44px, the WCAG 2.5.5 / HIG target and
-                         exactly what the send button in this same panel
-                         measures — these were 31px, and they matter most on a
-                         phone, which is where they were smallest. inline-flex
-                         centres the label within that height, and py-2.5 comes
-                         to 41px so the padding gives way to the minimum rather
-                         than fighting it.
-
-                         silver-400 is the site's MUTED BODY token: at 7.1:1 on
-                         this surface these read as captions, when an action
-                         should read more confidently than prose. silver-300
-                         takes it to 10.3:1, with the existing silver-100 hover
-                         still a clear step above at 15.8:1. The border
-                         treatment is deliberately untouched. */
+                      /* min-h-11 is the 44px WCAG 2.5.5 floor, matching the
+                         send button; py-2.5 comes to 41px so it gives way to
+                         the minimum. silver-400 is the muted BODY token and
+                         read as a caption here, so an action gets silver-300
+                         (10.3:1) with silver-100 hover above it. */
                       className="inline-flex min-h-11 items-center rounded-full border border-edge/10 px-4 py-2.5 text-left text-sm leading-snug text-silver-300 transition-colors duration-300 hover:border-silver-400/40 hover:text-silver-100 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {question}
