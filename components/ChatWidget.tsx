@@ -4,19 +4,26 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { Loader2, MessageSquare, Send, X } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { MAX_USER_MESSAGE_CHARS } from '@/lib/chat-config';
+import { settleTurn, trimForRequest, type Turn } from '@/lib/chat-history';
 import { inputClass } from '@/lib/field-styles';
 import MapleLeaf from './MapleLeaf';
-
-interface Turn {
-  role: 'user' | 'assistant';
-  content: string;
-}
 
 /** The site's signature curve — matches Reveal.tsx and the capability panel. */
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 const GREETING =
   "Hi — I can answer questions about Crimson Security's services, and put you in touch with the team. What are you looking into?";
+
+const GENERIC_ERROR = 'Something went wrong. Please try again.';
+
+/**
+ * Stands in when a lead was delivered but the model produced no closing text —
+ * the tool loop can exhaust its iterations still in `tool_use`. Telling the
+ * visitor it failed after their details were already emailed is the exact
+ * mirror of the silent-discard bug this branch exists to fix.
+ */
+const LEAD_CONFIRMED =
+  "Thanks — I've passed your details to the Crimson Security team. They'll follow up by email.";
 
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
@@ -62,7 +69,10 @@ export default function ChatWidget() {
     const text = draft.trim();
     if (!text || pending) return;
 
-    const next: Turn[] = [...turns, { role: 'user', content: text }];
+    // Captured before any state update, so every exit path below settles
+    // against the same starting conversation.
+    const before = turns;
+    const next: Turn[] = [...before, { role: 'user', content: text }];
     setTurns([...next, { role: 'assistant', content: '' }]);
     setDraft('');
     setError('');
@@ -71,23 +81,31 @@ export default function ChatWidget() {
     const controller = new AbortController();
     abortRef.current = controller;
 
+    // Hoisted out of the try so the single settle point in `finally` sees them
+    // whatever happened — success, thrown error, abort, or an empty stream.
+    let answer = '';
+    let leadDelivered = false;
+    let failure = '';
+    let aborted = false;
+
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: next }),
+        // Trimmed, not truncated on screen: the visitor keeps the whole
+        // transcript, the server keeps within its message cap.
+        body: JSON.stringify({ messages: trimForRequest(next) }),
         signal: controller.signal,
       });
 
       if (!res.ok || !res.body) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(data.error ?? 'Something went wrong.');
+        throw new Error(data.error ?? GENERIC_ERROR);
       }
 
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
-      let answer = '';
 
       while (true) {
         const { done, value } = await reader.read();
@@ -101,35 +119,51 @@ export default function ChatWidget() {
           const event = frame.match(/^event: (.+)$/m)?.[1];
           const data = frame.match(/^data: (.+)$/m)?.[1];
           if (!event || !data) continue;
-          const payload = JSON.parse(data) as { text?: string; message?: string };
+          const payload = JSON.parse(data) as { text?: string; message?: string; ok?: boolean };
 
           if (event === 'delta' && payload.text) {
             answer += payload.text;
             setTurns([...next, { role: 'assistant', content: answer }]);
+          } else if (event === 'lead' && payload.ok) {
+            leadDelivered = true;
           } else if (event === 'error') {
-            throw new Error(payload.message ?? 'Something went wrong.');
+            throw new Error(payload.message ?? GENERIC_ERROR);
           }
         }
       }
-
-      // A completed stream with no text is not a usable turn — drop the empty
-      // placeholder rather than leaving a turn that can never resolve and that
-      // would poison the next request's history.
-      if (!answer) {
-        setTurns(next);
-        setError('Something went wrong. Please try again.');
-      } else {
-        setAnnouncement(answer);
-      }
     } catch (err) {
-      // Every non-success exit (thrown error or abort) must drop the empty
-      // assistant placeholder — an unresolved empty turn left in history
-      // would fail the next request against the Messages API, not our own
-      // guard, which is confusing to diagnose.
-      setTurns(next);
-      if ((err as Error).name === 'AbortError') return;
-      setError((err as Error).message || 'Something went wrong. Please try again.');
+      // An abort is the visitor's own doing, not a failure to report. Anything
+      // else becomes a message, but the settling below happens either way.
+      if ((err as Error).name === 'AbortError') {
+        aborted = true;
+      } else {
+        failure = (err as Error).message || GENERIC_ERROR;
+      }
     } finally {
+      // The lead reached the team, so this turn succeeded even if no text came
+      // back. Speak for the model rather than reporting a failure that did not
+      // happen.
+      if (!answer && leadDelivered) answer = LEAD_CONFIRMED;
+
+      // The one place the conversation is written back. settleTurn keeps a
+      // partial answer and drops an empty exchange outright, so `turns` always
+      // alternates and always starts on `user` — see lib/chat-history.ts.
+      setTurns(settleTurn(before, text, answer));
+
+      if (answer) setAnnouncement(answer);
+
+      // With no answer, no turn survives to show what was asked. Put the
+      // question back so the visitor can retry without retyping it — unless
+      // they have already started typing something else.
+      if (!answer) setDraft((current) => current || text);
+
+      // A delivered lead means this turn did its job, and an abort is the
+      // visitor's own doing. Neither is a failure worth putting on screen.
+      if (!leadDelivered && !aborted) {
+        if (failure) setError(failure);
+        else if (!answer) setError(GENERIC_ERROR);
+      }
+
       setPending(false);
       abortRef.current = null;
     }
