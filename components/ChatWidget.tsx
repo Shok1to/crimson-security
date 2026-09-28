@@ -112,8 +112,21 @@ export default function ChatWidget() {
         }
       }
 
-      setAnnouncement(answer);
+      // A completed stream with no text is not a usable turn — drop the empty
+      // placeholder rather than leaving a turn that can never resolve and that
+      // would poison the next request's history.
+      if (!answer) {
+        setTurns(next);
+        setError('Something went wrong. Please try again.');
+      } else {
+        setAnnouncement(answer);
+      }
     } catch (err) {
+      // Every non-success exit (thrown error or abort) must drop the empty
+      // assistant placeholder — an unresolved empty turn left in history
+      // would fail the next request against the Messages API, not our own
+      // guard, which is confusing to diagnose.
+      setTurns(next);
       if ((err as Error).name === 'AbortError') return;
       setError((err as Error).message || 'Something went wrong. Please try again.');
     } finally {
@@ -142,7 +155,11 @@ export default function ChatWidget() {
             ref={panelRef}
             id="chat-panel"
             role="dialog"
-            aria-modal="true"
+            // Deliberately non-modal: a visitor may legitimately want to Tab back to
+            // the page to read something while this stays open. Focus moves in on
+            // open and Escape closes it, but nothing traps Tab or inerts the rest of
+            // the page — so do not add aria-modal="true" back; that would claim
+            // modal behaviour this panel does not (and should not) provide.
             aria-labelledby="chat-heading"
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}

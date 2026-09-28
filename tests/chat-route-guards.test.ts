@@ -56,6 +56,20 @@ describe('validateConversation', () => {
   it('rejects a turn whose content is not a string', () => {
     expect(validateConversation({ messages: [{ role: 'user', content: { a: 1 } }] }).ok).toBe(false);
   });
+
+  it('rejects a conversation containing an empty turn (e.g. a stale assistant placeholder)', () => {
+    const result = validateConversation({
+      messages: [turn('user', 'hi'), turn('assistant', ''), turn('user', 'again')],
+    });
+    expect(result.ok).toBe(false);
+  });
+
+  it('rejects a conversation containing a whitespace-only turn', () => {
+    const result = validateConversation({
+      messages: [turn('user', 'hi'), turn('assistant', '   '), turn('user', 'again')],
+    });
+    expect(result.ok).toBe(false);
+  });
 });
 
 import { POST } from '@/app/api/chat/route';

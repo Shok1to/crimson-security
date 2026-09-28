@@ -30,6 +30,13 @@ export function validateConversation(body: unknown): Validation {
     if (typeof turn.content !== 'string') {
       return { ok: false, error: 'Every message must be text.' };
     }
+    // Defence in depth: an empty or whitespace-only turn (e.g. a client bug
+    // that resends a stale placeholder) would otherwise pass this guard and
+    // fail upstream against the Messages API instead, which is confusing to
+    // diagnose. Reject it here with an honest message.
+    if (turn.content.trim().length === 0) {
+      return { ok: false, error: 'Every message must have content.' };
+    }
     if (expected === 'user' && turn.content.length > MAX_USER_MESSAGE_CHARS) {
       return { ok: false, error: 'That message is too long.' };
     }
