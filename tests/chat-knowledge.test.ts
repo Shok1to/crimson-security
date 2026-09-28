@@ -38,6 +38,39 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toMatch(/exploit/i);
   });
 
+  /**
+   * The one that matters most on a security firm's public widget: a transcript
+   * travels with a captured lead into an inbox, so anything a visitor pastes
+   * here leaves Crimson holding unsolicited infrastructure detail about a
+   * company that is not yet a client.
+   */
+  it('never asks for or invites detail about the visitor environment', () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toMatch(/never ask for specific technical detail/i);
+    expect(prompt).toMatch(/never invite it/i);
+    for (const kind of [
+      /IP addresses or ranges/i,
+      /hostnames/i,
+      /topology/i,
+      /versions/i,
+      /firewall rules/i,
+      /security tooling/i,
+      /vulnerability or scan findings/i,
+      /credentials, keys or\s+tokens/i,
+    ]) {
+      expect(prompt).toMatch(kind);
+    }
+  });
+
+  // Declining is not enough: the reason has to reflect well on a security firm.
+  it('explains why volunteered detail belongs in a direct conversation', () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toMatch(/do not repeat it back/i);
+    expect(prompt).toMatch(/do not analyse it/i);
+    expect(prompt).toMatch(/not a secure channel/i);
+    expect(prompt).toMatch(/under an engagement/i);
+  });
+
   // Nothing stopped the assistant being used as a general-purpose chatbot:
   // resignation letters and Python debugging, on Crimson's billing and under
   // Crimson's name.
