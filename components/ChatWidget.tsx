@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { MAX_USER_MESSAGE_CHARS } from '@/lib/chat-config';
 import { settleTurn, trimForRequest, type Turn } from '@/lib/chat-history';
 import { inputClass } from '@/lib/field-styles';
+import { QUICK_REPLIES } from '@/lib/quick-replies';
 import MapleLeaf from './MapleLeaf';
 
 /** The site's signature curve — matches Reveal.tsx and the capability panel. */
@@ -64,9 +65,12 @@ export default function ChatWidget() {
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  async function onSubmit(e: FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const text = draft.trim();
+  /**
+   * The single send path. The form and the quick-reply buttons both call this,
+   * so there is no parallel submit logic to keep in step.
+   */
+  async function sendMessage(raw: string) {
+    const text = raw.trim();
     if (!text || pending) return;
 
     // Captured before any state update, so every exit path below settles
@@ -175,6 +179,11 @@ export default function ChatWidget() {
     }
   }
 
+  function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    void sendMessage(draft);
+  }
+
   return (
     <>
       <button
@@ -226,6 +235,26 @@ export default function ChatWidget() {
               <p className="rounded-xl border border-edge/10 bg-edge/[0.02] p-4 text-sm leading-relaxed text-silver-200">
                 {GREETING}
               </p>
+
+              {/* A way in without typing. Starting affordance only, so it goes
+                  as soon as there is a conversation — not a persistent menu.
+                  flex-wrap keeps it off a horizontal scrollbar when narrow. */}
+              {turns.length === 0 && (
+                <div role="group" aria-label="Suggested questions" className="flex flex-wrap gap-2">
+                  {QUICK_REPLIES.map((question) => (
+                    <button
+                      key={question}
+                      type="button"
+                      onClick={() => void sendMessage(question)}
+                      disabled={pending}
+                      className="rounded-full border border-edge/10 px-3 py-1.5 text-left text-xs leading-snug text-silver-400 transition-colors duration-300 hover:border-silver-400/40 hover:text-silver-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {question}
+                    </button>
+                  ))}
+                </div>
+              )}
+
               <ol className="space-y-3">
                 {turns.map((turn, i) => (
                   <li
