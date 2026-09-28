@@ -2,11 +2,12 @@ import { NextResponse } from 'next/server';
 import { deliverEnquiry } from '@/lib/enquiry-delivery';
 
 /**
- * PLACEHOLDER contact handler.
+ * Contact form handler.
  *
- * It validates input and screens out bots, but it does NOT deliver the message anywhere yet.
- * Before launch, replace the marked TODO with a real delivery step (e.g. Resend / Postmark /
- * SES email, or a CRM webhook) and add its API key as a Vercel environment variable.
+ * Validates input, screens bots with a honeypot, and delivers the enquiry via deliverEnquiry.
+ * Delivery requires RESEND_API_KEY; if missing or the transport fails, deliverEnquiry throws
+ * and this route returns 500. This intentional failure (not a false success) ensures the form
+ * shows its error state instead of claiming the message was sent when it wasn't.
  */
 
 type Field = 'name' | 'email' | 'message';
