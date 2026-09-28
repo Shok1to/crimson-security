@@ -11,11 +11,13 @@ export const metadata: Metadata = {
 };
 
 /*
- * DRAFT policy text. It describes only what this site actually does today (a contact form
- * and no advertising/tracking cookies). Have counsel review it, and update it if you add
+ * DRAFT policy text. It describes only what this site actually does today: a contact form,
+ * a chat assistant powered by Anthropic's Claude, transactional email through Resend, and no
+ * advertising or tracking cookies. Every one of those processors is outside Canada, which the
+ * "Who we share it with" section discloses. Have counsel review it, and update it if you add
  * analytics, a CRM, or any other processing.
  */
-const LAST_UPDATED = 'September 18, 2026';
+const LAST_UPDATED = 'September 28, 2026';
 
 const h2 = 'mt-12 font-display text-2xl font-bold text-silver-50';
 const p = 'mt-4 leading-relaxed text-silver-300';
@@ -52,6 +54,11 @@ export default function PrivacyPage() {
             hosting provider may automatically record technical data such as IP address, browser type, and
             pages requested in standard server logs.
           </li>
+          <li className={li}>
+            <strong className="text-silver-100">Chat assistant.</strong> If you use the assistant on
+            this site, we process the messages you send it, along with any name, email address or
+            company you choose to give it.
+          </li>
         </ul>
         <p className={p}>This website does not use advertising or cross-site tracking cookies.</p>
 
@@ -65,8 +72,35 @@ export default function PrivacyPage() {
         <h2 className={h2}>Who we share it with</h2>
         <p className={p}>
           We share personal information only with service providers who help us operate this website and
-          handle enquiries (for example, website hosting and email), and only as needed for those purposes. We
-          may also disclose information where required by law.
+          handle enquiries (for example, website hosting, email delivery, and the provider behind our chat
+          assistant), and only as needed for those purposes. We may also disclose information where required
+          by law.
+        </p>
+        <p className={p}>
+          These service providers are located outside Canada &mdash; primarily in the United States. Personal
+          information processed or stored there is subject to the laws of that country, and may be accessible
+          to its courts, law enforcement, and government authorities under those laws. By sending us an
+          enquiry or using the chat assistant, you consent to your information being handled this way.
+        </p>
+
+        <h2 className={h2}>Chat assistant</h2>
+        <p className={p}>
+          The assistant on this site is powered by Anthropic&apos;s Claude. Messages you send are
+          transmitted to Anthropic as our service provider solely to generate a reply, and are not
+          used to train their models. We do not store conversations on our servers; a conversation
+          exists only in your browser while it is open.
+        </p>
+        <p className={p}>
+          If you give the assistant your contact details, they are emailed to us together with the
+          conversation, exactly as a contact-form submission would be, and are handled the same way.
+          You never have to use the assistant &mdash; the{' '}
+          <Link
+            href="/#contact"
+            className="text-crimson-300 underline underline-offset-4 hover:text-silver-50"
+          >
+            contact form
+          </Link>{' '}
+          does the same job.
         </p>
 
         <h2 className={h2}>Retention and safeguards</h2>

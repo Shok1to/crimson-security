@@ -12,7 +12,8 @@ npm run build && npm start
 
 | Item | Where | Notes |
 | --- | --- | --- |
-| Contact delivery | `app/api/contact/route.ts` | **Placeholder.** Validates and screens bots, but does not send the message anywhere. Add an email/CRM call at the `TODO`. |
+| Chat assistant | `app/api/chat/route.ts` | Needs `ANTHROPIC_API_KEY` and `RESEND_API_KEY`. **`CHAT_ENABLED` defaults off** — set it to `true` to serve. Rate limiting is in-memory per instance (see the design doc); move to Redis if the endpoint draws traffic. |
+| Contact delivery | `app/api/contact/route.ts`, `lib/enquiry-delivery.ts` | Delivers via Resend. Requires `RESEND_API_KEY`; the route returns 500 when delivery fails rather than reporting false success. **Not yet verified against the live Resend API — see issue #11.** |
 | Contact details | `lib/site.ts` | info@crimsonsecurityinc.ca, the Toronto address and the four locations live here and feed the contact section, footer, privacy page and JSON-LD. **Confirm the mailboxes are live before launch.** |
 | Site URL | `NEXT_PUBLIC_SITE_URL` (Vercel env) | Used for canonical, OG and sitemap URLs. Falls back to Vercel's production URL, then localhost. |
 | Privacy policy | `app/privacy/page.tsx` | Draft that describes only what the site does today. Have counsel review it. |

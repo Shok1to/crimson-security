@@ -1,0 +1,434 @@
+'use client';
+
+import { AnimatePresence, motion } from 'framer-motion';
+import Image from 'next/image';
+import { Loader2, Maximize2, Minimize2, Send, X } from 'lucide-react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { MAX_USER_MESSAGE_CHARS } from '@/lib/chat-config';
+import { settleTurn, trimForRequest, type Turn } from '@/lib/chat-history';
+import { inputClass } from '@/lib/field-styles';
+import { QUICK_REPLIES } from '@/lib/quick-replies';
+import MapleLeaf from './MapleLeaf';
+
+/** The site's signature curve — matches Reveal.tsx and the capability panel. */
+const EASE = [0.22, 1, 0.36, 1] as const;
+
+const GREETING =
+  "Hi — I can answer questions about Crimson Security's services, and put you in touch with the team. What are you looking into?";
+
+const GENERIC_ERROR = 'Something went wrong. Please try again.';
+
+/**
+ * Stands in when a lead was delivered but the model produced no closing text —
+ * the tool loop can exhaust its iterations still in `tool_use`. Telling the
+ * visitor it failed after their details were already emailed is the exact
+ * mirror of the silent-discard bug this branch exists to fix.
+ */
+const LEAD_CONFIRMED =
+  "Thanks — I've passed your details to the Crimson Security team. They'll follow up by email.";
+
+export default function ChatWidget() {
+  const [open, setOpen] = useState(false);
+  /** Purely presentational — it never touches `turns`. */
+  const [maximized, setMaximized] = useState(false);
+  const [turns, setTurns] = useState<Turn[]>([]);
+  const [draft, setDraft] = useState('');
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState('');
+  /** Announced once per completed turn. Streaming into a live region makes
+   *  screen readers unusable, so deltas render outside it. */
+  const [announcement, setAnnouncement] = useState('');
+
+  const launcherRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const logRef = useRef<HTMLDivElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
+
+  const close = useCallback(() => {
+    abortRef.current?.abort();
+    setOpen(false);
+    launcherRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') close();
+    };
+    window.addEventListener('keydown', onKey);
+    inputRef.current?.focus();
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open, close]);
+
+  // Keep the newest turn in view as it streams.
+  useEffect(() => {
+    logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
+  }, [turns]);
+
+  useEffect(() => () => abortRef.current?.abort(), []);
+
+  /**
+   * The single send path. The form and the quick-reply buttons both call this,
+   * so there is no parallel submit logic to keep in step.
+   */
+  async function sendMessage(raw: string) {
+    const text = raw.trim();
+    if (!text || pending) return;
+
+    // Captured before any state update, so every exit path below settles
+    // against the same starting conversation.
+    const before = turns;
+    const next: Turn[] = [...before, { role: 'user', content: text }];
+    setTurns([...next, { role: 'assistant', content: '' }]);
+    setDraft('');
+    setError('');
+    setPending(true);
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+
+    // Hoisted out of the try so the single settle point in `finally` sees them
+    // whatever happened — success, thrown error, abort, or an empty stream.
+    let answer = '';
+    let leadDelivered = false;
+    let failure = '';
+    let aborted = false;
+
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // Trimmed, not truncated on screen: the visitor keeps the whole
+        // transcript, the server keeps within its message cap.
+        body: JSON.stringify({ messages: trimForRequest(next) }),
+        signal: controller.signal,
+      });
+
+      if (!res.ok || !res.body) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(data.error ?? GENERIC_ERROR);
+      }
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+
+        const frames = buffer.split('\n\n');
+        buffer = frames.pop() ?? '';
+
+        for (const frame of frames) {
+          const event = frame.match(/^event: (.+)$/m)?.[1];
+          const data = frame.match(/^data: (.+)$/m)?.[1];
+          if (!event || !data) continue;
+          const payload = JSON.parse(data) as { text?: string; message?: string; ok?: boolean };
+
+          if (event === 'delta' && payload.text) {
+            answer += payload.text;
+            setTurns([...next, { role: 'assistant', content: answer }]);
+          } else if (event === 'lead' && payload.ok) {
+            leadDelivered = true;
+          } else if (event === 'error') {
+            throw new Error(payload.message ?? GENERIC_ERROR);
+          }
+        }
+      }
+    } catch (err) {
+      // An abort is the visitor's own doing, not a failure to report. Anything
+      // else becomes a message, but the settling below happens either way.
+      if ((err as Error).name === 'AbortError') {
+        aborted = true;
+      } else {
+        failure = (err as Error).message || GENERIC_ERROR;
+      }
+    } finally {
+      // The lead reached the team, so this turn succeeded even if no text came
+      // back. Speak for the model rather than reporting a failure that did not
+      // happen.
+      if (!answer.trim() && leadDelivered) answer = LEAD_CONFIRMED;
+
+      // Whitespace-only counts as no answer. validateConversation rejects a
+      // turn whose content trims to nothing, so storing a bare "\n" would
+      // break the NEXT send exactly as a dangling user turn would. The test
+      // matters only for the decision — `answer` is stored as produced.
+      const hasAnswer = answer.trim().length > 0;
+
+      // The one place the conversation is written back. settleTurn keeps a
+      // partial answer and drops an empty exchange outright, so `turns` always
+      // alternates and always starts on `user` — see lib/chat-history.ts.
+      setTurns(settleTurn(before, text, answer));
+
+      if (hasAnswer) setAnnouncement(answer);
+
+      // With no answer, no turn survives to show what was asked. Put the
+      // question back so the visitor can retry without retyping it — unless
+      // they have already started typing something else.
+      if (!hasAnswer) setDraft((current) => current || text);
+
+      // A delivered lead means this turn did its job, and an abort is the
+      // visitor's own doing. Neither is a failure worth putting on screen.
+      if (!leadDelivered && !aborted) {
+        if (failure) setError(failure);
+        else if (!hasAnswer) setError(GENERIC_ERROR);
+      }
+
+      setPending(false);
+      abortRef.current = null;
+    }
+  }
+
+  function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    void sendMessage(draft);
+  }
+
+  return (
+    <>
+      <button
+        ref={launcherRef}
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-label="Open the Crimson Security assistant"
+        aria-expanded={open}
+        aria-controls="chat-panel"
+        /* The real mark, so the entry point is the brand rather than a
+           stand-in for it — but that forces the surface to change with it. The
+           mark is largely crimson with silver detail, so on the old
+           bg-crimson-button its crimson would have sunk into the fill and only
+           the "C" would have read: muddy, and it would have looked like a
+           mistake. ink-800 is one step off the ink-900 page base, enough to
+           separate without reading as a hole, and silver-border supplies the
+           same rim the panel and the cards use rather than a hand-rolled one.
+           shadow-crimson-cta stays on both states: with the crimson fill gone
+           that glow is the only thing making this findable on a dark page. */
+        className="silver-border fixed bottom-6 right-6 z-40 inline-flex h-14 w-14 items-center justify-center rounded-full bg-ink-800 shadow-crimson-cta transition-all duration-300 hover:bg-ink-700 hover:shadow-crimson-cta-hover"
+      >
+        {/* 36px inside the 56px button. The mark carries a shield, a leaf and a
+            "C", which would have turned to mush in the old 24px icon slot; 36
+            is the top of the sensible range here and still leaves a 10px ring
+            of surface. The asset is 667px square, so there is ample resolution
+            even at 3x. Decorative — the button's aria-label names the action,
+            exactly as Header.tsx and Footer.tsx treat the same file. */}
+        <Image
+          src="/crimson-security-mark.png"
+          alt=""
+          width={36}
+          height={36}
+          sizes="36px"
+          className="h-9 w-9 object-contain"
+        />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            ref={panelRef}
+            id="chat-panel"
+            role="dialog"
+            // Deliberately non-modal: a visitor may legitimately want to Tab back to
+            // the page to read something while this stays open. Focus moves in on
+            // open and Escape closes it, but nothing traps Tab or inerts the rest of
+            // the page — so do not add aria-modal="true" back; that would claim
+            // modal behaviour this panel does not (and should not) provide.
+            aria-labelledby="chat-heading"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            // `layout` is what animates the maximize/restore size change, using
+            // the transition below — the site's easing at 0.35s. Framer is
+            // wrapped in MotionConfig reducedMotion="user", so this is covered
+            // without a CSS keyframe that would have to be remembered in the
+            // prefers-reduced-motion list in app/globals.css.
+            layout
+            transition={{ duration: 0.35, ease: EASE }}
+            className={`silver-border card-surface fixed inset-x-0 bottom-0 top-[4.5rem] z-50 flex flex-col overflow-hidden rounded-t-3xl shadow-card sm:rounded-3xl ${
+              // Below sm the panel is already a near-fullscreen sheet, so only
+              // the sm: classes differ. Maximized leaves the 4.5rem site header
+              // clear and keeps a margin on the other three sides.
+              //
+              // It also gets a near-opaque surface and a backdrop blur.
+              // OBSERVED: .card-surface is 90% opaque with no backdrop-filter.
+              // That reads as depth at the restored size, but collects too much
+              // background when the panel is most of the viewport — the hero
+              // showed through the message area.
+              //
+              // NOT OBSERVED: whether the blur alone would have been enough.
+              // Nobody has seen it. The screenshot path used to check this does
+              // not composite backdrop-filter, so it cannot represent the blur
+              // either way — an early reading that said blur was insufficient
+              // was that artifact, not the browser.
+              //
+              // So bg-ink-900/95 is the load-bearing part, chosen because it IS
+              // verifiable through that path: under uncertainty, prefer the
+              // mechanism you can confirm. .card-surface sets `background` as a
+              // shorthand in @layer components, so this background-color
+              // utility from @layer utilities lands underneath the gradient
+              // rather than replacing it. The blur is kept for edge softness.
+              //
+              // Both are confined to this branch: the restored card is
+              // untouched and still measures backdropFilter "none", and
+              // .card-surface itself is not edited, so ContactSection,
+              // CapabilityTabs, ServicesGrid and StoryCards are unaffected —
+              // they are in-flow over backgrounds their own section controls,
+              // which is the assumption this fixed-position panel broke.
+              maximized
+                ? 'sm:inset-x-6 sm:bottom-6 sm:top-[5.5rem] sm:h-auto sm:w-auto sm:bg-ink-900/95 sm:backdrop-blur-xl'
+                : 'sm:inset-x-auto sm:bottom-6 sm:right-6 sm:top-auto sm:h-[36rem] sm:w-[24rem]'
+            }`}
+          >
+            <div className="flex items-center justify-between border-b border-edge/10 px-5 py-4">
+              <h2 id="chat-heading" className="flex items-center gap-2.5 font-display text-base font-bold text-silver-50">
+                <MapleLeaf className="h-4 w-4 shrink-0 text-crimson-400" />
+                Ask Crimson
+              </h2>
+              <div className="-mr-2 flex items-center">
+                {/* Hidden below sm, where the panel is already a near-fullscreen
+                    sheet and there is nothing to maximize into. The label
+                    carries the state; no aria-pressed, so it is announced once. */}
+                <button
+                  type="button"
+                  onClick={() => setMaximized((v) => !v)}
+                  aria-label={maximized ? 'Restore the assistant' : 'Maximize the assistant'}
+                  className="hidden h-10 w-10 items-center justify-center rounded-md text-silver-300 transition-colors hover:bg-edge/5 hover:text-silver-50 sm:inline-flex"
+                >
+                  {maximized ? (
+                    <Minimize2 className="h-4 w-4" aria-hidden="true" />
+                  ) : (
+                    <Maximize2 className="h-4 w-4" aria-hidden="true" />
+                  )}
+                </button>
+                {/* Stays exactly as it was: closing means minimizing to the
+                    launcher. No third control duplicating it. */}
+                <button
+                  type="button"
+                  onClick={close}
+                  aria-label="Close the assistant"
+                  className="inline-flex h-10 w-10 items-center justify-center rounded-md text-silver-300 transition-colors hover:bg-edge/5 hover:text-silver-50"
+                >
+                  <X className="h-5 w-5" aria-hidden="true" />
+                </button>
+              </div>
+            </div>
+
+            <div ref={logRef} className="flex-1 space-y-3 overflow-y-auto px-5 py-4">
+              <p className="rounded-xl border border-edge/10 bg-edge/[0.02] p-4 text-sm leading-relaxed text-silver-200">
+                {GREETING}
+              </p>
+
+              {/* A way in without typing. Starting affordance only, so it goes
+                  as soon as there is a conversation — not a persistent menu.
+                  flex-wrap keeps it off a horizontal scrollbar when narrow;
+                  at text-sm these take more rows on a phone, which is the
+                  right trade for reaching the 44px target below. */}
+              {turns.length === 0 && (
+                <div role="group" aria-label="Suggested questions" className="flex flex-wrap gap-2">
+                  {QUICK_REPLIES.map((question) => (
+                    <button
+                      key={question}
+                      type="button"
+                      onClick={() => void sendMessage(question)}
+                      disabled={pending}
+                      /* min-h-11 is 44px, the WCAG 2.5.5 / HIG target and
+                         exactly what the send button in this same panel
+                         measures — these were 31px, and they matter most on a
+                         phone, which is where they were smallest. inline-flex
+                         centres the label within that height, and py-2.5 comes
+                         to 41px so the padding gives way to the minimum rather
+                         than fighting it.
+
+                         silver-400 is the site's MUTED BODY token: at 7.1:1 on
+                         this surface these read as captions, when an action
+                         should read more confidently than prose. silver-300
+                         takes it to 10.3:1, with the existing silver-100 hover
+                         still a clear step above at 15.8:1. The border
+                         treatment is deliberately untouched. */
+                      className="inline-flex min-h-11 items-center rounded-full border border-edge/10 px-4 py-2.5 text-left text-sm leading-snug text-silver-300 transition-colors duration-300 hover:border-silver-400/40 hover:text-silver-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {question}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              <ol className="space-y-3">
+                {turns.map((turn, i) => (
+                  <li
+                    key={i}
+                    /* Who spoke is carried by ALIGNMENT first and colour
+                       second, so the conversation is readable without
+                       decoding a tint. w-fit lets a one-word turn hug its
+                       text instead of stretching to the cap, which is what
+                       makes the asymmetry visible on short turns; the max-w
+                       then bounds a long one. The sr-only prefixes below are
+                       unchanged and remain the accessible answer. */
+                    className={
+                      turn.role === 'user'
+                        ? 'ml-auto w-fit max-w-[85%] rounded-xl border border-crimson-400/60 bg-crimson-600/10 p-4 text-sm leading-relaxed text-silver-100'
+                        : 'mr-auto w-fit max-w-[95%] rounded-xl border border-edge/10 bg-edge/[0.02] p-4 text-sm leading-relaxed text-silver-200'
+                    }
+                  >
+                    <span className="sr-only">{turn.role === 'user' ? 'You said: ' : 'Assistant said: '}</span>
+                    {turn.content || (
+                      /* The brand mark rather than three generic dots. role="img"
+                         so the label is actually exposed — this is not inside an
+                         aria-live region, so it is read when focus reaches it and
+                         only the completed turn gets announced. align-middle keeps
+                         the 16px glyph centred on the baseline instead of sitting
+                         on it, so it fits inside the existing line box and the
+                         bubble does not shift when the answer replaces it. */
+                      <span className="inline-flex items-center align-middle" role="img" aria-label="Thinking">
+                        {/* animate-pixel is a pure opacity pulse, already
+                            registered in the prefers-reduced-motion list in
+                            app/globals.css — no new keyframe to remember, and no
+                            transform, so it cannot move anything. */}
+                        <MapleLeaf className="animate-pixel h-4 w-4 text-crimson-300" />
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ol>
+              {error && <p className="text-sm text-crimson-300">{error}</p>}
+            </div>
+
+            <div aria-live="polite" className="sr-only">
+              {announcement}
+            </div>
+
+            <form onSubmit={onSubmit} className="flex items-center gap-2 border-t border-edge/10 px-5 py-4">
+              <label htmlFor="chat-input" className="sr-only">
+                Your message
+              </label>
+              <input
+                ref={inputRef}
+                id="chat-input"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                maxLength={MAX_USER_MESSAGE_CHARS}
+                placeholder="Ask a question…"
+                autoComplete="off"
+                className={`${inputClass} py-2.5 text-sm`}
+              />
+              <button
+                type="submit"
+                disabled={pending || !draft.trim()}
+                aria-label="Send message"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-crimson-button text-white shadow-crimson-cta transition-all duration-300 hover:bg-crimson-button-hover disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {pending ? (
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                ) : (
+                  <Send className="h-4 w-4" aria-hidden="true" />
+                )}
+              </button>
+            </form>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
+  );
+}
