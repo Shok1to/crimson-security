@@ -11,8 +11,10 @@ export const metadata: Metadata = {
 };
 
 /*
- * DRAFT policy text. It describes only what this site actually does today (a contact form
- * and no advertising/tracking cookies). Have counsel review it, and update it if you add
+ * DRAFT policy text. It describes only what this site actually does today: a contact form,
+ * a chat assistant powered by Anthropic's Claude, transactional email through Resend, and no
+ * advertising or tracking cookies. Every one of those processors is outside Canada, which the
+ * "Who we share it with" section discloses. Have counsel review it, and update it if you add
  * analytics, a CRM, or any other processing.
  */
 const LAST_UPDATED = 'September 28, 2026';
@@ -70,8 +72,15 @@ export default function PrivacyPage() {
         <h2 className={h2}>Who we share it with</h2>
         <p className={p}>
           We share personal information only with service providers who help us operate this website and
-          handle enquiries (for example, website hosting and email), and only as needed for those purposes. We
-          may also disclose information where required by law.
+          handle enquiries (for example, website hosting, email delivery, and the provider behind our chat
+          assistant), and only as needed for those purposes. We may also disclose information where required
+          by law.
+        </p>
+        <p className={p}>
+          These service providers are located outside Canada &mdash; primarily in the United States. Personal
+          information processed or stored there is subject to the laws of that country, and may be accessible
+          to its courts, law enforcement, and government authorities under those laws. By sending us an
+          enquiry or using the chat assistant, you consent to your information being handled this way.
         </p>
 
         <h2 className={h2}>Chat assistant</h2>
