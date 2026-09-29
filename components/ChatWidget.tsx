@@ -318,7 +318,7 @@ export default function ChatWidget() {
                 panel and pushes the input row out of view instead of
                 scrolling inside it. */}
             <div ref={logRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-5 py-4">
-              <p className="rounded-xl border border-edge/10 bg-edge/[0.02] p-4 text-sm leading-relaxed text-silver-200">
+              <p className="whitespace-pre-line rounded-xl border border-edge/10 bg-edge/[0.02] p-4 text-sm leading-relaxed text-silver-200">
                 {GREETING}
               </p>
 
@@ -360,7 +360,17 @@ export default function ChatWidget() {
                     }
                   >
                     <span className="sr-only">{turn.role === 'user' ? 'You said: ' : 'Assistant said: '}</span>
-                    {turn.content || (
+                    {/* The assistant writes blank-line-separated paragraphs and
+                        HTML was collapsing every newline to a space, so answers
+                        arrived as one block. pre-line keeps the newlines and
+                        still collapses runs of spaces, so wrapped text stays
+                        even — pre and pre-wrap would preserve every space and
+                        leave it ragged. Scoped to a wrapper rather than the li
+                        so the sr-only prefix and the thinking indicator are
+                        untouched. */}
+                    {turn.content ? (
+                      <span className="whitespace-pre-line">{turn.content}</span>
+                    ) : (
                       /* The brand mark rather than three generic dots. role="img"
                          so the label is actually exposed — this is not inside an
                          aria-live region, so it is read when focus reaches it and

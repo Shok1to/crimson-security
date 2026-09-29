@@ -71,6 +71,53 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toMatch(/under an engagement/i);
   });
 
+  /**
+   * Answers were landing at or above the old 120-word ceiling and reading long
+   * for a chat panel, worst on the mobile sheet. The guidance is about SHAPE
+   * rather than a number, because a bare word count invites padding up to it.
+   */
+  describe('reply shape', () => {
+    it('lowers the ceiling and frames it as a ceiling, not a target', () => {
+      const prompt = buildSystemPrompt();
+      expect(prompt).toMatch(/under about 80 words/i);
+      expect(prompt).toMatch(/a ceiling, never a target/i);
+      expect(prompt).toMatch(/padding an answer out to\s+reach a limit/i);
+      expect(prompt).not.toMatch(/120 words/);
+    });
+
+    it('makes the shape depend on the question', () => {
+      const prompt = buildSystemPrompt();
+      expect(prompt).toMatch(/let the question decide the shape/i);
+      expect(prompt).toMatch(/a sentence or two, one paragraph/i);
+      expect(prompt).toMatch(/two or three short paragraphs/i);
+      expect(prompt).toMatch(/do not run every answer through the\s+same template/i);
+    });
+
+    it('bans preamble, restating the question and a trailing pitch', () => {
+      const prompt = buildSystemPrompt();
+      expect(prompt).toMatch(/begin with the answer/i);
+      expect(prompt).toMatch(/never open with filler/i);
+      expect(prompt).toMatch(/do not restate the question/i);
+      expect(prompt).toMatch(/Great question/);
+      expect(prompt).toMatch(/Happy to help/);
+      expect(prompt).toMatch(/do not tack a pitch onto the end/i);
+    });
+
+    it('makes the closing question conditional rather than automatic', () => {
+      const prompt = buildSystemPrompt();
+      expect(prompt).toMatch(/end with a question of your own only when/i);
+      expect(prompt).toMatch(/after a simple factual answer\s+it is noise/i);
+    });
+
+    // Paragraphs are now encouraged, so the no-markdown rule must not read as
+    // forbidding them — the two instructions have to agree.
+    it('permits paragraphs while still forbidding lists', () => {
+      const prompt = buildSystemPrompt();
+      expect(prompt).toMatch(/Paragraphs are fine; lists are not\./);
+      expect(prompt).toMatch(/no numbered lists/i);
+    });
+  });
+
   // Nothing stopped the assistant being used as a general-purpose chatbot:
   // resignation letters and Python debugging, on Crimson's billing and under
   // Crimson's name.
