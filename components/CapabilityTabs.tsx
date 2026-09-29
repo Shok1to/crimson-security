@@ -90,7 +90,7 @@ export default function CapabilityTabs() {
                     role="tab"
                     id={`tab-${tab.id}`}
                     aria-selected={selected}
-                    aria-controls={`panel-${tab.id}`}
+                    aria-controls={selected ? `panel-${tab.id}` : undefined}
                     tabIndex={selected ? 0 : -1}
                     onClick={() => setActive(i)}
                     className={`group relative flex shrink-0 snap-start items-center gap-3 rounded-xl border px-5 py-4 text-left font-display transition-colors duration-300 lg:w-full ${
