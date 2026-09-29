@@ -10,6 +10,16 @@ import { clientKeyFromHeaders, leadLimiter, rateLimiter } from '@/lib/rate-limit
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+/**
+ * Seconds. MUST stay comfortably above ANALYSIS_TIMEOUT_MS plus the time to
+ * send: the lead briefing is awaited before the email goes out, so a function
+ * killed mid-analysis would lose the enquiry silently.
+ *
+ * A literal on purpose -- Next requires route segment config to be statically
+ * analysable, so this cannot be imported from lib/chat-config.ts. The pairing
+ * is enforced by tests/route-duration.test.ts instead.
+ */
+export const maxDuration = 30;
 
 /**
  * Constructed on first use, not at module load. Importing this route in a test

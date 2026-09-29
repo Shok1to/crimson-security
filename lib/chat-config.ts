@@ -45,5 +45,14 @@ export const ANALYSIS_MAX_TOKENS = 1024;
 /**
  * The contact form's visitor is waiting on this request, so the briefing gets a
  * hard ceiling and the enquiry goes without it rather than late.
+ *
+ * This is ALSO a safety bound, not just a courtesy. The briefing is awaited
+ * before the email is sent, so if the serverless function were killed while a
+ * slow analysis was still running, the enquiry would never be sent at all --
+ * the silent loss issue #1 exists to prevent. Both routes therefore declare a
+ * `maxDuration` that comfortably exceeds this, and
+ * tests/route-duration.test.ts fails if the two ever drift apart.
+ *
+ * Measured at roughly 4.8s per call against the live API.
  */
-export const ANALYSIS_TIMEOUT_MS = 12_000;
+export const ANALYSIS_TIMEOUT_MS = 8_000;
