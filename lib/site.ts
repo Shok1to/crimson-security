@@ -33,6 +33,18 @@ export const site = {
   ],
 } as const
 
+/**
+ * Alt text for the social share images.
+ *
+ * The root layout gets this from the file convention
+ * (app/opengraph-image.alt.txt and app/twitter-image.alt.txt). Any page that
+ * declares its own openGraph or twitter block loses the file-convention image
+ * and has to restate it, so the string lives here once and
+ * tests/social-metadata.test.ts asserts it still matches both files byte for
+ * byte.
+ */
+export const socialImageAlt = `${site.name} — ${site.tagline}. Canadian cybersecurity assessments and consulting.`
+
 /** Second address line, e.g. "Toronto, Ontario, Canada M5V 2Y1". */
 export const addressCityLine = `${site.address.locality}, ${site.address.region}, ${site.address.country} ${site.address.postalCode}`
 

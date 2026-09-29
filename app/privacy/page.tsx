@@ -1,13 +1,48 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import LeafDivider from '@/components/LeafDivider';
-import { addressCityLine, site } from '@/lib/site';
+import { addressCityLine, site, socialImageAlt } from '@/lib/site';
+
+const TITLE = 'Privacy Policy';
+const DESCRIPTION =
+  'How Crimson Security collects, uses, discloses and protects personal information submitted through this website, in line with Canadian privacy law (PIPEDA).';
 
 export const metadata: Metadata = {
-  title: 'Privacy Policy',
-  description:
-    'How Crimson Security collects, uses, discloses and protects personal information submitted through this website, in line with Canadian privacy law (PIPEDA).',
+  title: TITLE,
+  description: DESCRIPTION,
   alternates: { canonical: '/privacy' },
+  /**
+   * Without these the root layout's blocks passed straight through, so a link
+   * to this page previewed as the HOME page and linked there, while the
+   * canonical above said /privacy. The two disagreed.
+   *
+   * Everything is restated on purpose. Next merges metadata per KEY, not per
+   * field, so declaring either block replaces the parent's entirely — verified
+   * against the built output, where an earlier version of this that set only
+   * title, description and url silently dropped og:type, og:locale,
+   * og:site_name and, worst, og:image. Declaring the block also suppresses the
+   * inherited file-convention image, so the images array is not optional here:
+   * without it this page previews with no image at all.
+   *
+   * twitter does NOT fall back to openGraph. Also verified: with openGraph
+   * fixed and twitter left alone, twitter:title still carried the home page's
+   * title.
+   */
+  openGraph: {
+    type: 'website',
+    locale: 'en_CA',
+    siteName: site.name,
+    title: `${TITLE} | ${site.name}`,
+    description: DESCRIPTION,
+    url: '/privacy',
+    images: [{ url: '/opengraph-image.png', width: 1200, height: 630, alt: socialImageAlt }],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: `${TITLE} | ${site.name}`,
+    description: DESCRIPTION,
+    images: [{ url: '/twitter-image.png', width: 1200, height: 630, alt: socialImageAlt }],
+  },
 };
 
 /*
