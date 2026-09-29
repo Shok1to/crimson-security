@@ -20,8 +20,13 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          # Matches the floor in package.json engines.
-          node-version: '18.17'
+          # The FLOOR from package.json engines, deliberately not the latest:
+          # testing on the oldest supported runtime is what catches a global
+          # that only exists in newer ones. Node 18 was the floor until it
+          # turned out globalThis.crypto is not defined there — it became a
+          # global in Node 19 — and Node 18 has been end-of-life since April
+          # 2025, so the floor moved rather than the code being worked around.
+          node-version: '20'
           cache: npm
 
       # `ci` not `install`: fails on a lockfile that disagrees with

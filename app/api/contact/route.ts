@@ -11,6 +11,10 @@ import { clientKeyFromHeaders, rateLimiter } from '@/lib/rate-limit';
  * limiter: same mailbox, same quota. The honeypot stops only naive bots.
  */
 
+export const runtime = 'nodejs';
+/** Seconds. See the note on maxDuration in app/api/chat/route.ts. */
+export const maxDuration = 30;
+
 type Field = 'name' | 'email' | 'message';
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
