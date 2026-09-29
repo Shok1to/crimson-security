@@ -1,12 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk';
-import { captureLeadTool, createLeadBudget } from '@/lib/capture-lead';
 import { CHAT_MODEL, MAX_OUTPUT_TOKENS, MAX_PAYLOAD_CHARS } from '@/lib/chat-config';
 import { describeFailure } from '@/lib/chat-failure';
 import { buildSystemPrompt } from '@/lib/chat-knowledge';
 import { GUARD_MESSAGE, scanAnswer, type GuardPattern } from '@/lib/chat-output-guard';
-import { isTerminalStopReason, sseEvent, toAnthropicMessages } from '@/lib/chat-stream';
+import { deliverLead, validateLead, type NormalisedLead } from '@/lib/chat-lead';
+import { sseEvent, toAnthropicMessages } from '@/lib/chat-stream';
 import { validateConversation } from '@/lib/chat-validation';
-import { clientKeyFromHeaders, rateLimiter } from '@/lib/rate-limit';
+import { clientKeyFromHeaders, leadLimiter, rateLimiter } from '@/lib/rate-limit';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
@@ -59,6 +59,35 @@ export async function POST(request: Request): Promise<Response> {
     return json({ error: validation.error }, 400);
   }
 
+  /**
+   * The widget sends this with the FIRST message of a conversation and never
+   * again, so an absent `lead` is the normal state of every later turn — not a
+   * bypass. The details are what make a conversation useful to Crimson; they
+   * are not what authorises it, so there is nothing here to circumvent.
+   */
+  let lead: NormalisedLead | null = null;
+  let leadBlocked = false;
+  const rawLead = (body as { lead?: unknown }).lead;
+
+  if (rawLead !== undefined) {
+    const check = validateLead(rawLead);
+    if (!check.ok) {
+      return json({ error: check.error }, 400);
+    }
+
+    // A second, much tighter limit. The chat limit allows 15 requests a minute,
+    // and a scripted client that attached a lead to each one would turn that
+    // into 15 emails. Delivery is the expensive, outward-facing side effect, so
+    // it gets its own budget rather than sharing the conversation's.
+    const limit = await leadLimiter.check(clientKeyFromHeaders(request.headers));
+    if (limit.ok) {
+      lead = check.lead;
+    } else {
+      leadBlocked = true;
+      console.warn('[chat] lead delivery rate-limited');
+    }
+  }
+
   const encoder = new TextEncoder();
   // Review Focus 3: if the visitor closes the widget, stop consuming and stop billing.
   const abort = new AbortController();
@@ -73,73 +102,72 @@ export async function POST(request: Request): Promise<Response> {
         const conversation = toAnthropicMessages(validation.messages);
 
         /**
+         * Delivery runs ALONGSIDE the model call, not in front of it. The
+         * visitor is waiting on an answer and Resend's round trip has no
+         * business delaying the first token. The result is awaited below, so
+         * nothing is reported until it is actually known.
+         */
+        const delivery = lead
+          ? deliverLead(
+              lead,
+              validation.messages[validation.messages.length - 1].content,
+              new Date(),
+            )
+          : null;
+
+        /**
          * The deterministic backstop under the pricing and compliance rules.
          * Scanned across the whole answer, not per delta, because the phrase
-         * being caught arrives split across several of them. Spans the tool
-         * loop so a second iteration cannot start a fresh budget.
+         * being caught arrives split across several of them.
          */
         let answer = '';
         let guardTrip: GuardPattern | null = null;
-        // One per request, so the 3-iteration loop below cannot multiply lead
-        // emails and neither can parallel tool use within a single message.
-        const leads = createLeadBudget();
 
-        // One tool, so at most one round trip after the first. The bound stops a
-        // pathological loop from billing without end.
-        for (let iteration = 0; iteration < 3; iteration += 1) {
-          const stream = getClient().messages.stream(
-            {
-              model: CHAT_MODEL,
-              max_tokens: MAX_OUTPUT_TOKENS,
-              // This cache_control marker is INERT on this model today, and
-              // deliberately kept. Haiku 4.5's minimum cacheable prefix is
-              // 4096 tokens; SYSTEM_PROMPT measures ~2,200 — barely half — so
-              // nothing is ever cached. Confirmed live: cache_read_input_tokens
-              // was 0 on every request of the first real API pass. The failure
-              // is silent by design, which is why it took a live run to see.
-              // Retained because it costs nothing and starts working the moment
-              // the prompt grows past 4096 or the model changes. See spec §7.
-              system: [
-                { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
-              ],
-              tools: [captureLeadTool],
-              messages: conversation,
-            },
-            { signal: abort.signal },
-          );
+        const stream = getClient().messages.stream(
+          {
+            model: CHAT_MODEL,
+            max_tokens: MAX_OUTPUT_TOKENS,
+            // This cache_control marker is INERT on this model today, and
+            // deliberately kept. Haiku 4.5's minimum cacheable prefix is
+            // 4096 tokens and SYSTEM_PROMPT does not reach it, so nothing is
+            // ever cached. Confirmed live: cache_read_input_tokens was 0 on
+            // every request of the first real API pass. The failure is silent
+            // by design, which is why it took a live run to see. Retained
+            // because it costs nothing and starts working the moment the
+            // prompt grows past 4096 or the model changes. See spec section 7.
+            system: [
+              { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },
+            ],
+            messages: conversation,
+          },
+          { signal: abort.signal },
+        );
 
-          stream.on('text', (delta) => {
-            if (guardTrip) return;
-            answer += delta;
+        stream.on('text', (delta) => {
+          if (guardTrip) return;
+          answer += delta;
 
-            // Scan BEFORE forwarding, so the delta completing a violating
-            // phrase never reaches the visitor. Earlier deltas are already
-            // sent; the answer is left truncated, which is the point.
-            guardTrip = scanAnswer(answer);
-            if (guardTrip) {
-              abort.abort();
-              return;
-            }
-
-            send('delta', { text: delta });
-          });
-
-          let final: Anthropic.Message | undefined;
-          try {
-            final = await stream.finalMessage();
-          } catch (error) {
-            // Our own abort above, not a failure. Anything else is real.
-            if (!guardTrip) throw error;
-          }
-
+          // Scan BEFORE forwarding, so the delta completing a violating
+          // phrase never reaches the visitor. Earlier deltas are already
+          // sent; the answer is left truncated, which is the point.
+          guardTrip = scanAnswer(answer);
           if (guardTrip) {
-            // No visitor text and no answer text — the fact and the pattern.
-            console.warn('[chat] output guard tripped', { pattern: guardTrip });
-            send('error', { message: GUARD_MESSAGE });
-            break;
+            abort.abort();
+            return;
           }
-          if (!final) break;
 
+          send('delta', { text: delta });
+        });
+
+        let final: Anthropic.Message | undefined;
+        try {
+          final = await stream.finalMessage();
+        } catch (error) {
+          // Our own abort above, not a failure. Anything else is real.
+          if (!guardTrip) throw error;
+        }
+
+        if (final) {
           // cacheRead is expected to be 0 on this model — see the note on
           // cache_control above. It is still logged, because a non-zero value
           // is exactly the signal that the prompt has grown past Haiku 4.5's
@@ -149,30 +177,26 @@ export async function POST(request: Request): Promise<Response> {
             output: final.usage.output_tokens,
             stopReason: final.stop_reason,
           });
+        }
 
-          if (isTerminalStopReason(final.stop_reason)) break;
+        /**
+         * Reported BEFORE any error event, and that order is load-bearing: the
+         * widget stops reading the stream the moment it sees `error`, so a lead
+         * result sent afterwards would never be read and the visitor would
+         * never learn their details had not reached anyone.
+         */
+        if (delivery) {
+          send('lead', await delivery);
+        } else if (leadBlocked) {
+          // Rate-limited rather than attempted. Still reported: a visitor told
+          // nothing would assume their details had gone through.
+          send('lead', { ok: false });
+        }
 
-          const toolUses = final.content.filter(
-            (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use',
-          );
-
-          // Sequential on purpose: one lead may be delivered per request, so
-          // there is nothing to gain from running these concurrently and the
-          // budget's bound is easier to see this way.
-          const toolResults: Anthropic.ToolResultBlockParam[] = [];
-          for (const block of toolUses) {
-            const result = await leads.run(block.input, validation.messages);
-            if (result.ok) send('lead', { ok: true });
-            toolResults.push({
-              type: 'tool_result',
-              tool_use_id: block.id,
-              content: JSON.stringify(result),
-              is_error: !result.ok,
-            });
-          }
-
-          conversation.push({ role: 'assistant', content: final.content });
-          conversation.push({ role: 'user', content: toolResults });
+        if (guardTrip) {
+          // No visitor text and no answer text — the fact and the pattern.
+          console.warn('[chat] output guard tripped', { pattern: guardTrip });
+          send('error', { message: GUARD_MESSAGE });
         }
 
         send('done', {});

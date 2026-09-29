@@ -17,3 +17,20 @@ export const MAX_PAYLOAD_CHARS = 100_000;
 
 export const RATE_LIMIT_MAX = 15;
 export const RATE_LIMIT_WINDOW_MS = 60_000;
+
+/**
+ * Caps on the pre-chat details. Generous — a long name or a number with a
+ * country code and extension must fit — but bounded, because both reach an
+ * email we send.
+ */
+export const MAX_LEAD_NAME_CHARS = 120;
+export const MAX_LEAD_CONTACT_CHARS = 200;
+
+/**
+ * Delivery is the outward-facing side effect, so it gets a far tighter budget
+ * than the conversation itself. Three an hour per address covers a visitor who
+ * reopens the page a couple of times and stops a script turning the chat limit
+ * into an email flood.
+ */
+export const LEAD_RATE_LIMIT_MAX = 3;
+export const LEAD_RATE_LIMIT_WINDOW_MS = 60 * 60_000;

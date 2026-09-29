@@ -90,9 +90,10 @@ export default function PrivacyPage() {
             pages requested in standard server logs.
           </li>
           <li className={li}>
-            <strong className="text-silver-100">Chat assistant.</strong> If you use the assistant on
-            this site, we process the messages you send it, along with any name, email address or
-            company you choose to give it.
+            <strong className="text-silver-100">Chat assistant.</strong> Before the assistant will
+            answer anything, we ask for your name, either an email address or a phone number, and
+            your agreement that we may contact you about your enquiry. We process those details, a
+            record of the consent you gave, and the messages you send.
           </li>
         </ul>
         <p className={p}>This website does not use advertising or cross-site tracking cookies.</p>
@@ -126,16 +127,22 @@ export default function PrivacyPage() {
           exists only in your browser while it is open.
         </p>
         <p className={p}>
-          If you give the assistant your contact details, they are emailed to us together with the
-          conversation, exactly as a contact-form submission would be, and are handled the same way.
-          You never have to use the assistant &mdash; the{' '}
+          The assistant asks for your name and a way to reach you before it will answer a question.
+          Those details are emailed to us with your first question, exactly as a contact-form
+          submission would be, and are handled the same way. We also record the wording of the
+          consent you agreed to and when you agreed to it, so what was asked and what was agreed are
+          both clear. We use this only to reply to you.
+        </p>
+        <p className={p}>
+          The consent box is never ticked for you, and the assistant is never the only way to reach
+          us. If you would rather not give your details to it, the{' '}
           <Link
             href="/#contact"
             className="text-crimson-300 underline underline-offset-4 hover:text-silver-50"
           >
             contact form
           </Link>{' '}
-          does the same job.
+          does the same job, and you can email or call us directly.
         </p>
 
         <h2 className={h2}>Retention and safeguards</h2>

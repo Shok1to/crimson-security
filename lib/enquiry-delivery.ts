@@ -8,11 +8,18 @@ export interface ChatTurn {
 export interface Enquiry {
   source: 'contact-form' | 'chat';
   name: string;
+  /**
+   * Empty is legitimate: the chat gate accepts an email address OR a phone
+   * number, so a phone-only enquiry carries no email. The contact form still
+   * requires one. Everything downstream treats '' as absent.
+   */
   email: string;
   company?: string;
   phone?: string;
   interest?: string;
   message: string;
+  /** What the visitor agreed to, and when. Present on gated chat enquiries. */
+  consent?: string;
   transcript?: ChatTurn[];
 }
 
@@ -20,10 +27,11 @@ function renderBody(e: Enquiry): string {
   const lines = [
     `Source: ${e.source}`,
     `Name: ${e.name}`,
-    `Email: ${e.email}`,
+    e.email ? `Email: ${e.email}` : null,
     e.company ? `Company: ${e.company}` : null,
     e.phone ? `Phone: ${e.phone}` : null,
     `Interest: ${e.interest || 'general'}`,
+    e.consent ? `Consent: ${e.consent}` : null,
     '',
     e.message,
   ].filter((l): l is string => l !== null);
@@ -61,7 +69,9 @@ async function sendViaResend(e: Enquiry): Promise<void> {
     body: JSON.stringify({
       from: process.env.ENQUIRY_FROM ?? 'website@crimsonsecurityinc.ca',
       to: [site.emails.info],
-      reply_to: e.email,
+      // Omitted entirely rather than sent empty: a phone-only enquiry has no
+      // address to reply to, and Resend rejects a blank one.
+      ...(e.email ? { reply_to: e.email } : {}),
       subject: `Website enquiry from ${subjectSafe(e.name)}${
         e.company ? ` (${subjectSafe(e.company)})` : ''
       }`,

@@ -1,4 +1,9 @@
-import { RATE_LIMIT_MAX, RATE_LIMIT_WINDOW_MS } from '@/lib/chat-config';
+import {
+  LEAD_RATE_LIMIT_MAX,
+  LEAD_RATE_LIMIT_WINDOW_MS,
+  RATE_LIMIT_MAX,
+  RATE_LIMIT_WINDOW_MS,
+} from '@/lib/chat-config';
 
 export interface RateLimitResult {
   ok: boolean;
@@ -78,3 +83,14 @@ export function clientKeyFromHeaders(headers: Headers): string {
 }
 
 export const rateLimiter = createInMemoryRateLimiter();
+
+/**
+ * Separate instance, separate window. Kept apart from `rateLimiter` on purpose:
+ * sending an email is not the same act as asking a question, and sharing a
+ * budget would let a burst of harmless questions exhaust the protection that
+ * actually matters.
+ */
+export const leadLimiter = createInMemoryRateLimiter(
+  LEAD_RATE_LIMIT_MAX,
+  LEAD_RATE_LIMIT_WINDOW_MS,
+);
