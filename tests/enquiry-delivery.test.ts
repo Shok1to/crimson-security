@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { deliverEnquiry, type Enquiry } from '@/lib/enquiry-delivery';
 import { REFERENCE_PATTERN } from '@/lib/enquiry-reference';
+import { LOGO_BASE64, LOGO_CONTENT_ID } from '@/lib/enquiry-logo';
 
 const enquiry: Enquiry = {
   source: 'contact-form',
@@ -17,6 +18,45 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
+});
+
+describe('the embedded logo', () => {
+  const payload = async (): Promise<Record<string, unknown>> => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
+    vi.stubGlobal('fetch', fetchMock);
+    await deliverEnquiry(enquiry);
+    return JSON.parse(String(fetchMock.mock.calls[0][1].body));
+  };
+
+  it('attaches the mark inline with the id the HTML refers to', async () => {
+    const body = await payload();
+    const attachments = body.attachments as Array<Record<string, string>>;
+
+    expect(attachments).toHaveLength(1);
+    expect(attachments[0].content_id).toBe(LOGO_CONTENT_ID);
+    expect(attachments[0].disposition).toBe('inline');
+    expect(attachments[0].content_type).toBe('image/png');
+  });
+
+  /**
+   * The cid in the markup and the content_id on the attachment are matched by
+   * nothing but this assertion. If they drift the logo silently disappears.
+   */
+  it('matches the cid the HTML part actually uses', async () => {
+    const body = await payload();
+    const attachments = body.attachments as Array<Record<string, string>>;
+
+    expect(String(body.html)).toContain(`cid:${attachments[0].content_id}`);
+  });
+
+  it('carries real PNG bytes, not a placeholder', async () => {
+    const body = await payload();
+    const attachments = body.attachments as Array<Record<string, string>>;
+
+    expect(attachments[0].content).toBe(LOGO_BASE64);
+    // PNG magic number, base64-encoded, is always this prefix.
+    expect(attachments[0].content.startsWith('iVBORw0KGgo')).toBe(true);
+  });
 });
 
 describe('the recipient', () => {

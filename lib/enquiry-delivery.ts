@@ -1,4 +1,5 @@
 import { buildSubject, renderHtml, renderText } from '@/lib/enquiry-email';
+import { LOGO_BASE64, LOGO_CONTENT_ID, LOGO_FILENAME } from '@/lib/enquiry-logo';
 import { createReference } from '@/lib/enquiry-reference';
 import { analyseLead, type LeadAnalysis } from '@/lib/lead-analysis';
 import { site } from '@/lib/site';
@@ -91,12 +92,45 @@ async function sendViaResend(e: Enquiry, analysis: LeadAnalysis | null): Promise
       // client, a screen reader and a spam filter each read.
       html: renderHtml(e, analysis, at),
       text: renderText(e, analysis, at),
+      /**
+       * Inline, referenced by the template as cid:. Roughly 9KB on a message
+       * that is already several KB of markup, in exchange for a logo that
+       * renders without a network fetch -- including in clients that block
+       * remote images, which is the default in several of them.
+       */
+      attachments: [
+        {
+          filename: LOGO_FILENAME,
+          content: LOGO_BASE64,
+          content_id: LOGO_CONTENT_ID,
+          content_type: 'image/png',
+          disposition: 'inline',
+        },
+      ],
     }),
   });
 
   if (!response.ok) {
     throw new Error(`Enquiry delivery failed with status ${response.status}.`);
   }
+
+  /**
+   * Resend's own message id, logged beside our reference. Without it there is
+   * no way to look a specific send up in Resend's dashboard when someone asks
+   * what happened to an enquiry — our reference means nothing to them, and
+   * theirs means nothing to us. This is the only place the two are tied
+   * together. Parsing must not be able to fail the send: the mail is already
+   * accepted by this point.
+   */
+  let resendId: string | undefined;
+  try {
+    resendId = ((await response.json()) as { id?: string })?.id;
+  } catch {
+    // try/catch rather than .catch(): a response without a usable json()
+    // throws synchronously, so a rejection handler would never be attached.
+  }
+
+  console.info('[enquiry] delivered', { reference: e.reference, resendId });
 }
 
 /**

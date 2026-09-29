@@ -1,5 +1,6 @@
 import type { LeadAnalysis, Urgency } from '@/lib/lead-analysis';
 import type { Enquiry } from '@/lib/enquiry-delivery';
+import { LOGO_CONTENT_ID } from '@/lib/enquiry-logo';
 import { addressCityLine, site } from '@/lib/site';
 
 /**
@@ -328,7 +329,8 @@ export function renderHtml(e: Enquiry, analysis: L | null, at: Date): string {
     <table role="presentation" cellpadding="0" cellspacing="0" border="0">
       <tr>
         <td style="padding-right:11px;vertical-align:middle;">
-          <img src="${escapeHtml(site.url)}/crimson-security-mark-email.png" alt="" width="30" height="30" style="display:block;width:30px;height:30px;border:0;">
+<!-- cid:, not a URL. See lib/enquiry-logo.ts for why this is embedded. -->
+          <img src="cid:${LOGO_CONTENT_ID}" alt="" width="30" height="30" style="display:block;width:30px;height:30px;border:0;">
         </td>
         <td style="vertical-align:middle;">
           <span style="color:#ffffff;font-size:15px;font-weight:700;letter-spacing:.01em;">${escapeHtml(site.name)}</span>

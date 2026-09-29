@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { buildSubject, escapeHtml, formatTimestamp, renderHtml, renderText } from '@/lib/enquiry-email';
 import type { Enquiry } from '@/lib/enquiry-delivery';
 import type { LeadAnalysis } from '@/lib/lead-analysis';
+import { LOGO_BASE64, LOGO_CONTENT_ID } from '@/lib/enquiry-logo';
 
 const at = new Date('2026-09-30T14:32:00.000Z');
 
@@ -147,10 +148,20 @@ describe('renderHtml', () => {
       expect(renderHtml(base, null, at)).toContain('alt=""');
     });
 
-    /** 6.6KB, sized for a 30px slot — not the 307KB mark the site uses. */
-    it('points at the email-sized asset', () => {
+    /**
+     * Embedded, not hotlinked. A remote <img> fails in a client that blocks
+     * remote images, in a send from an environment whose site.url is not
+     * publicly reachable, and at any moment before the asset is deployed.
+     */
+    it('references the logo by content id rather than a URL', () => {
       const html = renderHtml(base, null, at);
-      expect(html).toContain('crimson-security-mark-email.png');
+      expect(html).toContain(`src="cid:${LOGO_CONTENT_ID}"`);
+    });
+
+    it('does not hotlink the logo from the site', () => {
+      const html = renderHtml(base, null, at);
+      expect(html).not.toContain('crimson-security-mark-email.png');
+      expect(html).not.toMatch(/<img[^>]+src="https?:/);
     });
 
     // Without this a client that auto-inverts will recolour the design.
