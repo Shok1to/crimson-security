@@ -28,18 +28,6 @@ export const metadata: Metadata = {
   title: { default: title, template: `%s | ${site.name}` },
   description: site.description,
   applicationName: site.name,
-  keywords: [
-    "cybersecurity Canada",
-    "penetration testing",
-    "compliance assessment",
-    "PCI assessment",
-    "vulnerability scanning",
-    "SOC audit",
-    "incident response",
-    "forensic analysis",
-    "SIEM",
-    "vendor security management",
-  ],
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
