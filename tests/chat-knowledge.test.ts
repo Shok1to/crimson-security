@@ -72,6 +72,71 @@ describe('buildSystemPrompt', () => {
   });
 
   /**
+   * The rule above used to read "if a visitor volunteers ANY OF IT", and the
+   * model generalised it from the technical list to anything at all — so a
+   * visitor who said "we are a 40-person fintech in Toronto" was told, live,
+   * "I won't use that detail to tailor anything". It recalled the fact and
+   * then disclaimed it, which reads exactly like amnesia.
+   */
+  describe('the visitor context it is allowed to use', () => {
+    it('binds the caution to technical detail rather than anything volunteered', () => {
+      const prompt = buildSystemPrompt();
+      expect(prompt).toMatch(/technical detail of that kind/i);
+      expect(prompt).toMatch(/covers the technical specifics listed above and nothing else/i);
+      expect(prompt).not.toMatch(/if a visitor volunteers any of it/i);
+    });
+
+    it('names business context as usable and says why', () => {
+      const prompt = buildSystemPrompt();
+      expect(prompt).toMatch(/it is\s+not about their business/i);
+      expect(prompt).toMatch(/which service to point\s+someone at/i);
+    });
+
+    it('tells it the chat is a conversation it can see all of', () => {
+      const prompt = buildSystemPrompt();
+      expect(prompt).toMatch(/not a series of unrelated questions/i);
+      expect(prompt).toMatch(/do not make them repeat themselves/i);
+    });
+
+    // The disclaimer itself, banned by name. This is the sentence visitors saw.
+    it('forbids announcing that it is not using what it was told', () => {
+      const prompt = buildSystemPrompt();
+      expect(prompt).toMatch(/never tell a visitor that you are not using/i);
+      expect(prompt).toMatch(/reads as though you have forgotten the\s+conversation/i);
+    });
+  });
+
+  /**
+   * The widget now collects name and contact details before a conversation can
+   * begin, so the model has no capture_lead tool and nothing left to ask for.
+   * Asking again would look broken to someone who typed it moments earlier.
+   */
+  describe('the pre-chat details', () => {
+    it('states that the details are already held by the team', () => {
+      const prompt = buildSystemPrompt();
+      expect(prompt).toMatch(/gave their name and either an email address or a phone/i);
+      expect(prompt).toMatch(/already reached the Crimson team/i);
+    });
+
+    it('forbids asking for a name, email or phone number', () => {
+      const prompt = buildSystemPrompt();
+      // Stated in the rules and restated in the closing reminders, because the
+      // reminders are the last thing read before the visitor's message.
+      const asks = prompt.match(/never ask for a name, an email address or a phone number/gi);
+      expect(asks).toHaveLength(2);
+    });
+
+    it('forbids guessing at values it was not given', () => {
+      const prompt = buildSystemPrompt();
+      expect(prompt).toMatch(/must never guess at them/i);
+    });
+
+    it('no longer mentions the removed tool', () => {
+      expect(buildSystemPrompt()).not.toMatch(/capture_lead/i);
+    });
+  });
+
+  /**
    * Answers were landing at or above the old 120-word ceiling and reading long
    * for a chat panel, worst on the mobile sheet. The guidance is about SHAPE
    * rather than a number, because a bare word count invites padding up to it.
