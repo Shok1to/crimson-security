@@ -247,6 +247,23 @@ export interface Differentiator {
   icon: LucideIcon;
 }
 
+/**
+ * The published SUPPORT hours, in one place so the visible copy below and the
+ * openingHoursSpecification in app/layout.tsx cannot drift apart.
+ *
+ * These are support hours, not confirmed office hours — see the note on the
+ * JSON-LD that consumes them.
+ */
+export const supportHours = {
+  /** Schema.org DayOfWeek names. */
+  days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
+  /** ISO 8601 local times, the format openingHoursSpecification expects. */
+  opens: '09:00',
+  closes: '17:00',
+  /** U+2060 word joiners keep "9am–5pm" from breaking across lines at the dash. */
+  display: 'Monday to Friday, 9am\u2060–\u20605pm',
+} as const;
+
 export const differentiators: Differentiator[] = [
   {
     title: 'Remote Pre-Audit Preparation',
@@ -280,8 +297,7 @@ export const differentiators: Differentiator[] = [
   },
   {
     title: 'Ongoing Technical Support',
-    // U+2060 word joiners keep "9am–5pm" from breaking across lines at the dash.
-    description: 'Technical support Monday to Friday, 9am\u2060–\u20605pm.',
+    description: `Technical support ${supportHours.display}.`,
     icon: Headset,
   },
   {
