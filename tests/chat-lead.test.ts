@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { CONSENT_STATEMENT, deliverLead, validateLead } from '@/lib/chat-lead';
 import { MAX_LEAD_CONTACT_CHARS, MAX_LEAD_NAME_CHARS } from '@/lib/chat-config';
+import { REFERENCE_PATTERN } from '@/lib/enquiry-reference';
+import { sseEvent } from '@/lib/chat-stream';
 
 /** The shape the gate posts when everything is filled in correctly. */
 const valid = { name: 'Dana Okafor', contact: 'dana@example.com', consent: true };
@@ -135,7 +137,7 @@ describe('deliverLead', () => {
 
     const result = await deliverLead(lead, 'Do you assess against PCI?', at);
 
-    expect(result).toEqual({ ok: true });
+    expect(result).toMatchObject({ ok: true, reference: expect.any(String) });
     const body = JSON.parse(fetchMock.mock.calls[0][1].body);
     expect(body.text).toContain('Do you assess against PCI?');
     // The wording the visitor actually agreed to, plus when — a bare
@@ -160,6 +162,37 @@ describe('deliverLead', () => {
     // "not given" tells the team immediately that replying means phoning.
     expect(body.text).toContain('Email: not given');
     expect(body.text).not.toContain('@');
+  });
+
+  /**
+   * The route emits this result verbatim as the `lead` event, and the widget
+   * shows the reference to the visitor. This pins that contract: the two sides
+   * are wired through a plain object, so nothing in the type system would
+   * catch the reference being dropped on the way out.
+   */
+  it('produces a lead event the widget can read the reference from', async () => {
+    vi.stubEnv('RESEND_API_KEY', 'test-key');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
+
+    const result = await deliverLead(lead, 'Do you assess against PCI?', at);
+    const frame = sseEvent('lead', result);
+
+    expect(frame.startsWith('event: lead\n')).toBe(true);
+
+    const payload = JSON.parse(frame.match(/^data: (.+)$/m)![1]);
+    expect(payload.ok).toBe(true);
+    expect(payload.reference).toMatch(REFERENCE_PATTERN);
+  });
+
+  it('carries no reference when delivery failed, so nothing false is shown', async () => {
+    vi.stubEnv('RESEND_API_KEY', '');
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const payload = JSON.parse(
+      sseEvent('lead', await deliverLead(lead, 'Hello?', at)).match(/^data: (.+)$/m)![1],
+    );
+    expect(payload.ok).toBe(false);
+    expect(payload.reference).toBeUndefined();
   });
 
   /**

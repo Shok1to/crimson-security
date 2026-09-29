@@ -148,9 +148,12 @@ export async function deliverLead(
   lead: NormalisedLead,
   question: string,
   at: Date,
-): Promise<{ ok: boolean }> {
+): Promise<{ ok: boolean; reference?: string }> {
   try {
-    await deliverEnquiry({
+    // The reference comes back from the delivery, so the code shown to the
+    // visitor is the same one that led the email subject — not a second value
+    // generated alongside it that could drift.
+    const reference = await deliverEnquiry({
       source: 'chat',
       name: lead.name,
       email: lead.email,
@@ -158,7 +161,7 @@ export async function deliverLead(
       message: question,
       consent: `${CONSENT_STATEMENT} (agreed ${at.toISOString()})`,
     });
-    return { ok: true };
+    return { ok: true, reference };
   } catch (error) {
     console.error('[chat] lead delivery failed', error instanceof Error ? error.message : error);
     return { ok: false };

@@ -44,6 +44,13 @@ const CHIP_CLASS =
 const LEAD_UNDELIVERED =
   'One thing — I could not pass your details to the team just now. Please use the contact form on this page so your enquiry is not lost.';
 
+/**
+ * Said out loud on success, not only on failure. A visitor who handed over
+ * their details before they were allowed to ask anything should be told those
+ * details arrived, rather than left to assume it.
+ */
+const LEAD_DELIVERED = 'Your details are with the Crimson Security team — they will be in touch.';
+
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
   /** Purely presentational — it never touches `turns`. */
@@ -60,7 +67,12 @@ export default function ChatWidget() {
   const [lead, setLead] = useState<LeadSubmission | null>(null);
   /** Sent once. Later turns carry no details, so one visitor is one email. */
   const [leadSent, setLeadSent] = useState(false);
-  const [leadNotice, setLeadNotice] = useState('');
+  /** Carries its own tone: a delivery failure is not styled like a receipt. */
+  const [leadNotice, setLeadNotice] = useState<{
+    tone: 'ok' | 'fail';
+    text: string;
+    reference?: string;
+  } | null>(null);
   const [turns, setTurns] = useState<Turn[]>([]);
   const [draft, setDraft] = useState('');
   const [pending, setPending] = useState(false);
@@ -135,6 +147,7 @@ export default function ChatWidget() {
     // verdict leaves them attached, so the next message retries delivery.
     let leadAcknowledged = false;
     let leadFailed = false;
+    let leadReference = '';
     let failure = '';
     let aborted = false;
 
@@ -174,7 +187,12 @@ export default function ChatWidget() {
           const event = frame.match(/^event: (.+)$/m)?.[1];
           const data = frame.match(/^data: (.+)$/m)?.[1];
           if (!event || !data) continue;
-          const payload = JSON.parse(data) as { text?: string; message?: string; ok?: boolean };
+          const payload = JSON.parse(data) as {
+            text?: string;
+            message?: string;
+            ok?: boolean;
+            reference?: string;
+          };
 
           if (event === 'delta' && payload.text) {
             answer += payload.text;
@@ -182,6 +200,7 @@ export default function ChatWidget() {
           } else if (event === 'lead') {
             leadAcknowledged = true;
             leadFailed = payload.ok !== true;
+            leadReference = payload.reference ?? '';
           } else if (event === 'error') {
             throw new Error(payload.message ?? GENERIC_ERROR);
           }
@@ -197,7 +216,11 @@ export default function ChatWidget() {
       }
     } finally {
       if (leadAcknowledged) setLeadSent(true);
-      if (leadFailed) setLeadNotice(LEAD_UNDELIVERED);
+      if (leadFailed) {
+        setLeadNotice({ tone: 'fail', text: LEAD_UNDELIVERED });
+      } else if (leadAcknowledged) {
+        setLeadNotice({ tone: 'ok', text: LEAD_DELIVERED, reference: leadReference });
+      }
 
       // Whitespace-only counts as no answer. validateConversation rejects a
       // turn whose content trims to nothing, so storing a bare "\n" would
@@ -419,12 +442,30 @@ export default function ChatWidget() {
                   ))}
                 </ol>
                   {error && <p className="text-sm text-crimson-300">{error}</p>}
-                  {/* Distinct from `error`: the answer arrived, it is the
-                      enquiry that did not. role="status" rather than alert —
-                      it is not urgent, and the visitor is mid-conversation. */}
+                  {/* Distinct from `error`, which is about the answer. This
+                      is about the enquiry: a receipt on success, a route to the
+                      contact form on failure. role="status" rather than alert —
+                      neither is urgent, and the visitor is mid-conversation. */}
                   {leadNotice && (
-                    <p role="status" className="text-sm text-crimson-300">
-                      {leadNotice}
+                    <p
+                      role="status"
+                      className={`text-sm ${
+                        leadNotice.tone === 'fail' ? 'text-crimson-300' : 'text-silver-400'
+                      }`}
+                    >
+                      {leadNotice.text}
+                      {leadNotice.reference && (
+                        <>
+                          {' '}
+                          Your reference is{' '}
+                          {/* Monospaced and tracked out: this is a code someone
+                              may read aloud or copy into an email. */}
+                          <span className="font-mono tracking-wide text-silver-200">
+                            {leadNotice.reference}
+                          </span>
+                          .
+                        </>
+                      )}
                     </p>
                   )}
               </div>

@@ -76,7 +76,13 @@ export function buildSubject(e: Enquiry, analysis: L | null): string {
   const who = e.company ? `${e.name} (${e.company})` : e.name;
   const what = analysis?.interest && analysis.interest !== 'general' ? analysis.interest : null;
   const base = what ? `${who} — ${what}` : who;
-  return `Website enquiry from ${base}`.replace(/[\r\n]+/g, ' ');
+  /**
+   * The reference LEADS the subject. Inbox list views truncate the end, and a
+   * reference the visitor can quote is worthless if it is the part that gets
+   * cut — this is the same reason ticketing systems put it here.
+   */
+  const ref = e.reference ? `[${e.reference}] ` : '';
+  return `${ref}Website enquiry from ${base}`.replace(/[\r\n]+/g, ' ');
 }
 
 type L = LeadAnalysis;
@@ -93,6 +99,7 @@ export function renderText(e: Enquiry, analysis: L | null, at: Date): string {
     `Source: ${e.source}`,
     `Received: ${formatTimestamp(at)}`,
     '',
+    e.reference ? `Reference: ${e.reference}` : null,
     `Name: ${e.name}`,
     e.email ? `Email: ${e.email}` : 'Email: not given',
     e.phone ? `Phone: ${e.phone}` : null,
@@ -361,6 +368,14 @@ export function renderHtml(e: Enquiry, analysis: L | null, at: Date): string {
 
   <tr><td style="padding:0 ${PAD} 34px;">
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;border-collapse:collapse;">
+      ${
+        e.reference
+          ? row(
+              'Reference',
+              `<span style="font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;letter-spacing:.04em;">${escapeHtml(e.reference)}</span>`,
+            )
+          : ''
+      }
       ${row('Interest', escapeHtml(interest))}
       ${
         e.consent

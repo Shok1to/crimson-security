@@ -24,7 +24,7 @@ afterEach(() => vi.restoreAllMocks());
 
 describe('POST /api/contact', () => {
   it('delivers a valid enquiry and returns ok', async () => {
-    vi.mocked(deliverEnquiry).mockResolvedValue(undefined);
+    vi.mocked(deliverEnquiry).mockResolvedValue('CS-T3ST01');
     const res = await post(valid);
     expect(res.status).toBe(200);
     expect(deliverEnquiry).toHaveBeenCalledOnce();
@@ -58,7 +58,7 @@ describe('POST /api/contact', () => {
   // A newline reaching the email subject is header-injection shaped. Resend
   // takes JSON so it cannot actually inject, but the value is still cleaned.
   it('strips CR/LF from the name before it reaches delivery', async () => {
-    vi.mocked(deliverEnquiry).mockResolvedValue(undefined);
+    vi.mocked(deliverEnquiry).mockResolvedValue('CS-T3ST01');
     await post({ ...valid, name: 'Ada\r\nBcc: attacker@example.com', company: 'Ada\nCorp' });
     const delivered = vi.mocked(deliverEnquiry).mock.calls[0][0];
     expect(delivered.name).not.toMatch(/[\r\n]/);
@@ -68,7 +68,7 @@ describe('POST /api/contact', () => {
   // I2: this route genuinely sends email now, so it needs the same bound the
   // chat route has. It shares the same mailbox and the same Resend quota.
   it('returns 429 with Retry-After once the rate limit is exceeded', async () => {
-    vi.mocked(deliverEnquiry).mockResolvedValue(undefined);
+    vi.mocked(deliverEnquiry).mockResolvedValue('CS-T3ST01');
     const ip = { 'x-forwarded-for': '198.51.100.77' };
     // Warm the window with invalid payloads: the limiter runs before body
     // parsing, so each counts without ever reaching delivery.
