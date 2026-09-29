@@ -1,7 +1,12 @@
 import { differentiators, services } from '@/lib/content';
 
 /**
- * Opening suggestions for the chat panel, phrased as a visitor would ask them.
+ * Opening suggestions for the chat panel, in a PROSPECT'S voice.
+ *
+ * Phrased the way someone evaluating Crimson would ask, not the way the site
+ * labels things. A visitor does not arrive knowing the phrase "No Limit Policy"
+ * or that forensics is a separate service line; they arrive with a worry.
+ *
  * Each names the `lib/content.ts` entries it is grounded in, verified at module
  * load, so a renamed service fails the build rather than leaving a button the
  * assistant cannot answer. FOUR is load-bearing: at the chips' 44px floor, six
@@ -17,7 +22,7 @@ interface QuickReply {
 
 const QUICK_REPLY_SOURCE: readonly QuickReply[] = [
   {
-    question: 'What does a penetration test involve?',
+    question: 'What happens during a penetration test?',
     grounding: ['Penetration Testing'],
   },
   {
@@ -25,11 +30,15 @@ const QUICK_REPLY_SOURCE: readonly QuickReply[] = [
     grounding: ['SSAE 16 / SOC Audits', 'Remote Pre-Audit Preparation'],
   },
   {
-    question: 'What is your No Limit Policy?',
+    // Was "What is your No Limit Policy?" — Crimson's label for it, which a
+    // visitor has no reason to know. This asks the underlying worry instead.
+    question: 'Is there a limit on how many devices you test?',
     grounding: ['No Limit Policy'],
   },
   {
-    question: 'Do you handle incident response and forensics?',
+    // Was "Do you handle incident response and forensics?" — the two service
+    // names. Someone with this problem asks about the problem.
+    question: "What do you do if we've had a breach?",
     grounding: ['Incident Response Services', 'Forensic Analysis Services'],
   },
 ];
