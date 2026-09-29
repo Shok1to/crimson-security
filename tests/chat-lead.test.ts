@@ -156,7 +156,10 @@ describe('deliverLead', () => {
     // Resend rejects an empty reply_to, so the key must be absent, not blank.
     expect(body).not.toHaveProperty('reply_to');
     expect(body.text).toContain('Phone: 416-555-0134');
-    expect(body.text).not.toContain('Email:');
+    // Stated rather than omitted: a missing line reads as an oversight, while
+    // "not given" tells the team immediately that replying means phoning.
+    expect(body.text).toContain('Email: not given');
+    expect(body.text).not.toContain('@');
   });
 
   /**

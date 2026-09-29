@@ -1,3 +1,5 @@
+import { buildSubject, renderHtml, renderText } from '@/lib/enquiry-email';
+import { analyseLead, type LeadAnalysis } from '@/lib/lead-analysis';
 import { site } from '@/lib/site';
 
 export interface ChatTurn {
@@ -21,29 +23,8 @@ export interface Enquiry {
   /** What the visitor agreed to, and when. Present on gated chat enquiries. */
   consent?: string;
   transcript?: ChatTurn[];
-}
-
-function renderBody(e: Enquiry): string {
-  const lines = [
-    `Source: ${e.source}`,
-    `Name: ${e.name}`,
-    e.email ? `Email: ${e.email}` : null,
-    e.company ? `Company: ${e.company}` : null,
-    e.phone ? `Phone: ${e.phone}` : null,
-    `Interest: ${e.interest || 'general'}`,
-    e.consent ? `Consent: ${e.consent}` : null,
-    '',
-    e.message,
-  ].filter((l): l is string => l !== null);
-
-  if (e.transcript?.length) {
-    lines.push('', '--- conversation ---');
-    for (const turn of e.transcript) {
-      lines.push(`${turn.role === 'user' ? 'Visitor' : 'Assistant'}: ${turn.content}`);
-    }
-  }
-
-  return lines.join('\n');
+  /** Defaults to now. Injectable so the rendering can be tested deterministically. */
+  submittedAt?: Date;
 }
 
 /**
@@ -54,11 +35,13 @@ function renderBody(e: Enquiry): string {
  */
 const subjectSafe = (value: string) => value.replace(/[\r\n]+/g, ' ');
 
-async function sendViaResend(e: Enquiry): Promise<void> {
+async function sendViaResend(e: Enquiry, analysis: LeadAnalysis | null): Promise<void> {
   const key = process.env.RESEND_API_KEY;
   if (!key) {
     throw new Error('Enquiry delivery is not configured: RESEND_API_KEY is unset.');
   }
+
+  const at = e.submittedAt ?? new Date();
 
   const response = await fetch('https://api.resend.com/emails', {
     method: 'POST',
@@ -67,15 +50,20 @@ async function sendViaResend(e: Enquiry): Promise<void> {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      from: process.env.ENQUIRY_FROM ?? 'website@crimsonsecurityinc.ca',
+      // Must be an address on a domain verified in Resend, or the send is
+      // rejected. The fallback is the expected production value, so an unset
+      // variable fails loudly at Resend rather than silently sending as
+      // something unexpected.
+      from: process.env.RESEND_FROM_EMAIL || 'website@crimsonsecurityinc.ca',
       to: [site.emails.info],
       // Omitted entirely rather than sent empty: a phone-only enquiry has no
       // address to reply to, and Resend rejects a blank one.
       ...(e.email ? { reply_to: e.email } : {}),
-      subject: `Website enquiry from ${subjectSafe(e.name)}${
-        e.company ? ` (${subjectSafe(e.company)})` : ''
-      }`,
-      text: renderBody(e),
+      subject: subjectSafe(buildSubject(e, analysis)),
+      // Both parts, always. Plain text is not a formality: it is what a text-only
+      // client, a screen reader and a spam filter each read.
+      html: renderHtml(e, analysis, at),
+      text: renderText(e, analysis, at),
     }),
   });
 
@@ -93,5 +81,12 @@ async function sendViaResend(e: Enquiry): Promise<void> {
  * messages vanished. Callers must surface the failure.
  */
 export async function deliverEnquiry(enquiry: Enquiry): Promise<void> {
-  await sendViaResend(enquiry);
+  /**
+   * Awaited, so one email carries the enquiry and its briefing together — two
+   * emails per lead would be worse than none of this. `analyseLead` swallows
+   * its own failures and returns null, and it is time-bounded, so a slow or
+   * broken analysis costs the briefing and never the enquiry.
+   */
+  const analysis = await analyseLead(enquiry);
+  await sendViaResend(enquiry, analysis);
 }

@@ -34,3 +34,16 @@ export const MAX_LEAD_CONTACT_CHARS = 200;
  */
 export const LEAD_RATE_LIMIT_MAX = 3;
 export const LEAD_RATE_LIMIT_WINDOW_MS = 60 * 60_000;
+
+/**
+ * The enquiry briefing that rides along with each lead email. Haiku, because
+ * this is summarising text that is already in front of it rather than
+ * reasoning about anything hard.
+ */
+export const ANALYSIS_MODEL = 'claude-haiku-4-5';
+export const ANALYSIS_MAX_TOKENS = 1024;
+/**
+ * The contact form's visitor is waiting on this request, so the briefing gets a
+ * hard ceiling and the enquiry goes without it rather than late.
+ */
+export const ANALYSIS_TIMEOUT_MS = 12_000;
