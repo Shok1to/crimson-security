@@ -129,9 +129,9 @@ export function ComplianceArt({ wide }: ArtProps) {
       extension={
         <>
           <Traces side="left" seed={4} />
-          {chip(592, 60, 114, 'FERC / NERC', { dim: true })}
-          {chip(592, 104, 114, 'BITS / COBRA', { dim: true })}
-          {chip(592, 148, 114, 'GLBA', { dim: true })}
+          {chip(560, 60, 114, 'FERC / NERC', { dim: true })}
+          {chip(560, 104, 114, 'BITS / COBRA', { dim: true })}
+          {chip(560, 148, 114, 'GLBA', { dim: true })}
         </>
       }
     >
