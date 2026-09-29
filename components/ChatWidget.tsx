@@ -261,7 +261,11 @@ export default function ChatWidget() {
             // prefers-reduced-motion list in app/globals.css.
             layout
             transition={{ duration: 0.35, ease: EASE }}
-            className={`silver-border card-surface fixed inset-x-0 z-50 flex flex-col overflow-hidden rounded-t-3xl shadow-card sm:rounded-3xl ${
+            // bg-ink-900 is unscoped, so the panel is opaque in both states
+            // and at both breakpoints. .card-surface is 90% and stays for its
+            // vertical gradient, which composites over this to an opaque
+            // result. DO NOT edit .card-surface; four components share it.
+            className={`silver-border card-surface fixed inset-x-0 z-50 flex flex-col overflow-hidden rounded-t-3xl bg-ink-900 shadow-card sm:rounded-3xl ${
               // Two sizes on every breakpoint. Mobile used to be stuck in the
               // largest one, so the only way back to the page was to close the
               // assistant. Unmaximized it is now a sheet the page shows above.
@@ -271,14 +275,8 @@ export default function ChatWidget() {
               // the panel — the input row — hides behind browser chrome. dvh
               // tracks the visual viewport as that chrome collapses. Hero.tsx
               // uses 100svh for the same reason.
-              //
-              // Maximized, .card-surface (90% opaque) collects too much
-              // background, so bg-ink-900/95 sits under its gradient — a
-              // longhand, so it does not replace the shorthand. That pair is
-              // sm: only. DO NOT edit .card-surface; four components share it.
-              // The blur is edge softness, never verified as sufficient alone.
               maximized
-                ? 'top-[4.5rem] h-[calc(100dvh-4.5rem)] sm:inset-x-6 sm:bottom-6 sm:top-[5.5rem] sm:h-auto sm:w-auto sm:bg-ink-900/95 sm:backdrop-blur-xl'
+                ? 'top-[4.5rem] h-[calc(100dvh-4.5rem)] sm:inset-x-6 sm:bottom-6 sm:top-[5.5rem] sm:h-auto sm:w-auto'
                 : 'bottom-0 h-[80dvh] sm:inset-x-auto sm:bottom-6 sm:right-6 sm:top-auto sm:h-[36rem] sm:w-[24rem]'
             }`}
           >
@@ -445,7 +443,13 @@ export default function ChatWidget() {
                 maxLength={MAX_USER_MESSAGE_CHARS}
                 placeholder="Ask a question…"
                 autoComplete="off"
-                className={`${inputClass} py-2.5 text-sm`}
+                /* NO text-sm here. iOS Safari zooms the viewport whenever a
+                   focused form control is under 16px, and the visitor has to
+                   pinch back out. inputClass is text-base for exactly that
+                   reason, which is why the contact form never had the problem.
+                   py-2.5 stays: at 16px it makes a 46px row, which sits level
+                   with the 44px trigger and send buttons beside it. */
+                className={`${inputClass} py-2.5`}
               />
               <button
                 type="submit"
