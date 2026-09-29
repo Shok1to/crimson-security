@@ -4,7 +4,7 @@ import ChatWidget from "@/components/ChatWidget"
 import Footer from "@/components/Footer"
 import Header from "@/components/Header"
 import Providers from "@/components/Providers"
-import { services } from "@/lib/content"
+import { services, supportHours } from "@/lib/content"
 import { site } from "@/lib/site"
 import "./globals.css"
 
@@ -72,6 +72,23 @@ const jsonLd = {
     addressCountry: site.address.countryCode,
   },
   areaServed: [site.address.country, ...site.locations],
+  /**
+   * DERIVED, NOT STATED. lib/content.ts publishes these as technical SUPPORT
+   * hours; schema.org reads openingHoursSpecification as when the business is
+   * open, which is a different claim the site never makes. Nobody has confirmed
+   * Crimson's actual office hours.
+   *
+   * Kept because support hours are the only hours published anywhere and local
+   * results surface them, but this is the one property here that is an
+   * inference. If the real opening hours differ, correct the values in
+   * lib/content.ts or delete this block outright — nothing else depends on it.
+   */
+  openingHoursSpecification: {
+    "@type": "OpeningHoursSpecification",
+    dayOfWeek: [...supportHours.days],
+    opens: supportHours.opens,
+    closes: supportHours.closes,
+  },
   hasOfferCatalog: {
     "@type": "OfferCatalog",
     name: "Cybersecurity Services",
