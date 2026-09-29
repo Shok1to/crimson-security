@@ -7,7 +7,7 @@ import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react'
 import { MAX_USER_MESSAGE_CHARS } from '@/lib/chat-config';
 import { settleTurn, trimForRequest, type Turn } from '@/lib/chat-history';
 import { inputClass } from '@/lib/field-styles';
-import { QUICK_REPLIES } from '@/lib/quick-replies';
+import { OPENING_QUICK_REPLIES, QUICK_REPLIES } from '@/lib/quick-replies';
 import MapleLeaf from './MapleLeaf';
 
 /**
@@ -322,13 +322,14 @@ export default function ChatWidget() {
                 {GREETING}
               </p>
 
-              {/* A way in without typing, for an empty conversation. The
-                  same four questions stay reachable all conversation long from
-                  the trigger in the input row; this stands down while that
-                  menu is open rather than showing them twice. */}
+              {/* A way in without typing, for an empty conversation. Four
+                  only: the greeting has room for 217px of chips, not the full
+                  set. The rest stay reachable all conversation long from the
+                  trigger in the input row, and this stands down while that menu
+                  is open rather than showing the same questions twice. */}
               {turns.length === 0 && !menuOpen && (
                 <div role="group" aria-label="Suggested questions" className="flex flex-wrap gap-2">
-                  {QUICK_REPLIES.map((question) => (
+                  {OPENING_QUICK_REPLIES.map((question) => (
                     <button
                       key={question}
                       type="button"
@@ -406,7 +407,11 @@ export default function ChatWidget() {
               id="chat-suggestions"
               role="group"
               aria-label="Suggested questions"
-              className={`${menuOpen ? 'flex' : 'hidden'} shrink-0 flex-wrap gap-2 border-t border-edge/10 px-5 py-4`}
+              /* The full set, so this may need to scroll. max-h caps it at
+                 roughly half the shortest panel and overflow-y-auto keeps the
+                 growth inside it, so the input row below stays put however many
+                 questions there are. */
+              className={`${menuOpen ? 'flex' : 'hidden'} max-h-[40dvh] shrink-0 flex-wrap gap-2 overflow-y-auto border-t border-edge/10 px-5 py-4 sm:max-h-64`}
             >
               {QUICK_REPLIES.map((question) => (
                 <button
