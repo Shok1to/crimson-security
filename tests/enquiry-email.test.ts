@@ -41,17 +41,19 @@ describe('renderHtml', () => {
    * reads it in a mail client, and some of those render HTML.
    */
   describe('visitor-supplied content is escaped', () => {
-    // What makes a payload inert is the escaped "<". The words inside it are
-    // harmless text once the tag cannot open, so each case asserts on the
-    // bracket rather than on the payload's contents.
+    /**
+     * Asserted against the EXACT payload rather than a fragment like "<img":
+     * the template has legitimate markup of its own (the brand logo is an
+     * <img>), so a fragment match cannot tell an injection from the design.
+     */
     it.each([
-      ['name', { name: '<script>alert(1)</script>' }, '<script', '&lt;script&gt;'],
-      ['message', { message: '<img src=x onerror=alert(1)>' }, '<img', '&lt;img'],
-      ['company', { company: '<b>Acme</b>' }, '<b>Acme', '&lt;b&gt;Acme'],
-      ['email', { email: 'a@b.co"><script>x</script>' }, '"><script', '&quot;&gt;&lt;script&gt;'],
-    ])('escapes a script payload in the %s', (_label, patch, raw, escaped) => {
-      const html = renderHtml({ ...base, ...patch }, null, at);
-      expect(html).not.toContain(raw);
+      ['name', 'name', '<script>alert(1)</script>', '&lt;script&gt;alert(1)&lt;/script&gt;'],
+      ['message', 'message', '<img src=x onerror=alert(1)>', '&lt;img src=x onerror=alert(1)&gt;'],
+      ['company', 'company', '<b>Acme</b>', '&lt;b&gt;Acme&lt;/b&gt;'],
+      ['email', 'email', 'a@b.co"><script>x</script>', '&quot;&gt;&lt;script&gt;'],
+    ])('escapes a script payload in the %s', (_label, field, payload, escaped) => {
+      const html = renderHtml({ ...base, [field]: payload }, null, at);
+      expect(html).not.toContain(payload);
       expect(html).toContain(escaped);
     });
 
@@ -126,6 +128,85 @@ describe('renderHtml', () => {
 
     it('omits the transcript when there is none', () => {
       expect(renderHtml(base, null, at)).not.toContain('Full conversation');
+    });
+  });
+
+  describe('the brand header', () => {
+    /**
+     * Many clients block remote images by default. The wordmark is live text
+     * beside the mark, so a blocked image costs the logo and never the
+     * identity — and the mark carries an empty alt so it does not produce a
+     * second copy of the name.
+     */
+    it('carries the wordmark as text, not only as an image', () => {
+      const html = renderHtml(base, null, at);
+      expect(html).toContain('>Crimson Security</span>');
+    });
+
+    it('marks the logo decorative so a blocked image adds no stray alt text', () => {
+      expect(renderHtml(base, null, at)).toContain('alt=""');
+    });
+
+    /** 6.6KB, sized for a 30px slot — not the 307KB mark the site uses. */
+    it('points at the email-sized asset', () => {
+      const html = renderHtml(base, null, at);
+      expect(html).toContain('crimson-security-mark-email.png');
+    });
+
+    // Without this a client that auto-inverts will recolour the design.
+    it('declares a light colour scheme', () => {
+      expect(renderHtml(base, null, at)).toContain('name="color-scheme" content="light"');
+    });
+  });
+
+  /**
+   * One obvious action. Acting on a lead should be a click, not a copy, a
+   * paste and a tidy-up.
+   */
+  describe('the primary action', () => {
+    it('prefills a reply with the draft when there is an email address', () => {
+      const html = renderHtml(base, analysis, at);
+      expect(html).toContain('Reply to Ada');
+      expect(html).toContain('mailto:ada@example.com?subject=');
+      // The draft, URL-encoded into the body.
+      expect(html).toContain(encodeURIComponent('Happy to help.'));
+    });
+
+    it('offers a call instead when only a phone number was given', () => {
+      const html = renderHtml({ ...base, email: '', phone: '+1 (416) 555-0134' }, analysis, at);
+      expect(html).toContain('Call Ada');
+      expect(html).toContain('href="tel:+14165550134');
+      expect(html).not.toContain('mailto:');
+    });
+
+    it('uses the first name only, so the button label stays short', () => {
+      const html = renderHtml({ ...base, name: 'Ada Byron King Lovelace' }, analysis, at);
+      expect(html).toContain('Reply to Ada<');
+    });
+
+    it('still prefills the subject when there is no draft to carry', () => {
+      const html = renderHtml(base, null, at);
+      expect(html).toContain('mailto:ada@example.com?subject=');
+      expect(html).not.toContain('&body=');
+    });
+
+    /**
+     * Some clients truncate a mailto past roughly 2,000 characters, and half a
+     * draft pasted into a reply is worse than none. The draft stays in the
+     * email to copy from.
+     */
+    it('drops the prefilled body when the draft is too long for a mailto', () => {
+      const html = renderHtml(base, { ...analysis, reply: 'x'.repeat(2000) }, at);
+      expect(html).toContain('mailto:ada@example.com?subject=');
+      expect(html).not.toContain('&body=');
+      // Still shown in full in the email itself.
+      expect(html).toContain('x'.repeat(2000));
+    });
+
+    it('escapes the ampersand in the mailto so the attribute stays valid', () => {
+      const html = renderHtml(base, analysis, at);
+      expect(html).toContain('&amp;body=');
+      expect(html).not.toMatch(/href="mailto:[^"]*[^p]&body=/);
     });
   });
 
