@@ -40,9 +40,8 @@ npm run build && npm start
 - `app/globals.css` — section themes. Neutral colours are CSS variables; add `theme-light` to a section to flip it to white/gray, `theme-crimson` for the crimson band, or nothing for dark. Page rhythm (SentinelOne-style): dark crimson hero → light story → light-gray services → dark capabilities → crimson stats → light differentiators → light-gray contact → dark footer.
 - `components/Reveal.tsx`, `CountUp.tsx` — scroll-triggered animation primitives (IntersectionObserver-based).
 - `components/CircuitTexture.tsx`, `PixelField.tsx` — the shield's circuit/pixel motif as background texture.
-- `public/crimson-security-logo.png` — original logo (for light backgrounds / JSON-LD).
-- `public/crimson-security-logo-dark.png` — same logo with the charcoal "SECURITY" wordmark and tagline recoloured for dark backgrounds, and the pale ground-shadow removed.
-- `public/crimson-security-mark.png` — shield + leaf only; source for `app/icon.png`, `app/apple-icon.png`, `app/favicon.ico`.
+- `public/crimson-security-logo.svg` — Crimson Security Canada logo (shown in the hero); `crimson-security-logo.png` is the raster copy used for JSON-LD.
+- `public/crimson-security-mark.svg` — shield only (from the logo SVG, also `app/icon.svg`); `public/crimson-security-mark.png` is the raster source for `app/apple-icon.png`, `app/apple-icon.png`, `app/favicon.ico`.
 - `app/opengraph-image.png` / `twitter-image.png` — 1200×630 social card.
 
 ## Motion & accessibility

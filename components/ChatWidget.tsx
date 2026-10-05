@@ -275,7 +275,8 @@ export default function ChatWidget() {
             it still leaves a ring of surface. Decorative, as in Header.tsx and
             Footer.tsx — the button's aria-label names the action. */}
         <Image
-          src="/crimson-security-mark.png"
+          src="/crimson-security-mark.svg"
+          unoptimized
           alt=""
           width={36}
           height={36}

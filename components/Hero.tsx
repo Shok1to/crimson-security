@@ -17,23 +17,16 @@ export default function Hero() {
 
       <div className="relative mx-auto w-full max-w-5xl px-5 text-center sm:px-8">
         <div className="animate-rise relative isolate" style={rise(0.05)}>
-          {/* The logo's maroon wordmark needs a darker seat than the crimson hero behind it. */}
-          <div
-            aria-hidden="true"
-            className="absolute -inset-x-16 -inset-y-14 -z-10"
-            style={{
-              background:
-                'radial-gradient(closest-side, rgba(14,6,8,0.92) 0%, rgba(14,6,8,0.7) 55%, transparent 100%)',
-            }}
-          />
+          {/* Transparent-background logo; the dark wordmark has low contrast on the crimson hero. */}
           <Image
-            src="/crimson-security-logo-dark.png"
-            alt="Crimson Security — Practical Information Security"
-            width={1886}
-            height={630}
+            src="/crimson-security-logo.svg"
+            unoptimized
+            alt="Crimson Security Canada — Practical Information Security"
+            width={785}
+            height={225}
             priority
             sizes="(min-width: 640px) 420px, 78vw"
-            className="mx-auto h-auto w-[78vw] max-w-[420px] drop-shadow-[0_10px_50px_rgba(227,34,15,0.35)]"
+            className="mx-auto h-auto w-[78vw] max-w-[420px]"
           />
         </div>
 

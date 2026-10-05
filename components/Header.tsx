@@ -46,21 +46,14 @@ export default function Header() {
             onClick={() => setOpen(false)}
           >
             <Image
-              src="/crimson-security-mark.png"
+              src="/crimson-security-logo.svg"
+              unoptimized
               alt=""
-              width={44}
+              width={154}
               height={44}
               priority
-              className="h-11 w-11 object-contain transition-transform duration-300 group-hover:scale-105"
+              className="h-11 w-auto transition-transform duration-300 group-hover:scale-105"
             />
-            <span className="flex flex-col leading-none">
-              <span className="text-crimson-gradient font-display text-xl font-bold tracking-tight">
-                Crimson
-              </span>
-              <span className="mt-1 font-display text-[0.62rem] font-semibold uppercase tracking-[0.42em] text-silver-100">
-                Security
-              </span>
-            </span>
           </Link>
 
           <nav

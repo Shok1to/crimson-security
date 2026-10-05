@@ -26,21 +26,13 @@ export default function Footer() {
               aria-label="Crimson Security — home"
             >
               <Image
-                src="/crimson-security-mark.png"
+                src="/crimson-security-logo.svg"
+                unoptimized
                 alt=""
-                width={56}
-                height={56}
-                sizes="56px"
-                className="h-14 w-14 object-contain"
+                width={210}
+                height={60}
+                className="h-[3.75rem] w-auto"
               />
-              <span className="flex flex-col leading-none">
-                <span className="text-crimson-gradient font-display text-2xl font-bold tracking-tight">
-                  Crimson
-                </span>
-                <span className="mt-1.5 font-display text-xs font-semibold uppercase tracking-[0.42em] text-silver-100">
-                  Security
-                </span>
-              </span>
             </Link>
             <p className="mt-5 max-w-xs text-sm leading-relaxed text-silver-400">
               {site.tagline}. Canadian cybersecurity assessment and consulting.

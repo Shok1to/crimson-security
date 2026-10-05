@@ -17,7 +17,8 @@ export function AssessVisual() {
         style={{ background: 'radial-gradient(closest-side, rgba(227,34,15,0.28), transparent)' }}
       />
       <Image
-        src="/crimson-security-mark.png"
+        src="/crimson-security-mark.svg"
+        unoptimized
         alt=""
         width={160}
         height={160}
