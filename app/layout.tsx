@@ -7,6 +7,7 @@ import Header from "@/components/Header"
 import Providers from "@/components/Providers"
 import { services, supportHours } from "@/lib/content"
 import { site } from "@/lib/site"
+import { GoogleAnalytics } from '@next/third-parties/google'
 import "./globals.css"
 
 const display = Archivo({
@@ -137,6 +138,7 @@ export default function RootLayout({
             fbq('track', 'PageView');
           `}
         </Script>
+        <GoogleAnalytics gaId="G-3QQZXH42SV" />
         <noscript>
           <img
             height="1"
