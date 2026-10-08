@@ -29,9 +29,9 @@ export default function Footer() {
                 src="/crimson-security-logo.svg"
                 unoptimized
                 alt=""
-                width={210}
-                height={60}
-                className="h-[3.75rem] w-auto"
+                width={237}
+                height={68}
+                className="h-[4.21875rem] w-auto"
               />
             </Link>
             <p className="mt-5 max-w-xs text-sm leading-relaxed text-silver-400">

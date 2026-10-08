@@ -25,8 +25,8 @@ export default function Hero() {
             width={785}
             height={225}
             priority
-            sizes="(min-width: 640px) 420px, 78vw"
-            className="mx-auto h-auto w-[78vw] max-w-[420px]"
+            sizes="(min-width: 640px) 520px, 100vw"
+            className="mx-auto h-auto w-full max-w-[520px]"
           />
         </div>
 
@@ -35,7 +35,7 @@ export default function Hero() {
           className="animate-rise mt-10 font-display text-4xl font-bold leading-[1.08] tracking-tight text-silver-50 sm:text-5xl lg:text-6xl text-balance"
           style={rise(0.2)}
         >
-          Find the gaps <span className="text-crimson-gradient">before they find you.</span>
+          Find the gaps <span className="text-crimson-logo">before they find you.</span>
         </h1>
 
         <p
@@ -52,7 +52,7 @@ export default function Hero() {
         >
           <Link
             href="/#contact"
-            className="group inline-flex w-full items-center justify-center gap-2 rounded-md bg-crimson-button px-8 py-4 font-display text-base font-semibold tracking-wide text-white shadow-crimson-cta transition-all duration-300 hover:-translate-y-0.5 hover:bg-crimson-button-hover hover:shadow-crimson-cta-hover sm:w-auto"
+            className="group inline-flex w-full items-center justify-center gap-2 rounded-md bg-crimson-logo px-8 py-4 font-display text-base font-semibold tracking-wide text-white transition-all duration-300 hover:-translate-y-0.5 hover:brightness-110 sm:w-auto"
           >
             Get in Touch
             <ArrowRight className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1" />

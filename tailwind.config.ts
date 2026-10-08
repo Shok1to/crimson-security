@@ -35,6 +35,8 @@ const config: Config = {
         /** Hairlines / faint fills: white on dark sections, near-black on light ones. */
         edge: v('edge'),
         crimson: {
+          // exact fill of the logo's red (crimson-security-logo.svg .st6)
+          logo: '#a11d21',
           950: '#2a0000',
           900: '#3d0000',
           800: '#570000',

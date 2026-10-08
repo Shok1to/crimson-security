@@ -49,10 +49,10 @@ export default function Header() {
               src="/crimson-security-logo.svg"
               unoptimized
               alt=""
-              width={154}
-              height={44}
+              width={174}
+              height={50}
               priority
-              className="h-11 w-auto transition-transform duration-300 group-hover:scale-105"
+              className="h-[3.09375rem] w-auto transition-transform duration-300 group-hover:scale-105"
             />
           </Link>
 
