@@ -7,7 +7,7 @@ import Header from "@/components/Header"
 import Providers from "@/components/Providers"
 import { services, supportHours } from "@/lib/content"
 import { site } from "@/lib/site"
-import { GoogleAnalytics } from '@next/third-parties/google'
+import { GoogleAnalytics } from "@next/third-parties/google"
 import "./globals.css"
 
 const display = Archivo({
@@ -139,6 +139,10 @@ export default function RootLayout({
           `}
         </Script>
         <GoogleAnalytics gaId="G-3QQZXH42SV" />
+        <Script
+          src="https://www.pierview.ai/pierview-analytics.js?id=pv_586_27gz77no"
+          strategy="afterInteractive"
+        />
         <noscript>
           <img
             height="1"
