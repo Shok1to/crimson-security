@@ -6,6 +6,8 @@ import MapleLeaf from "./MapleLeaf"
 
 const company = [
   { label: "Capabilities", href: "/#capabilities" },
+  { label: "VAPT", href: "/vapt" },
+  { label: "Incident Response", href: "/incident-response" },
   { label: "Why Crimson", href: "/#why-crimson" },
   { label: "Contact", href: "/#contact" },
   { label: "Privacy Policy", href: "/privacy" },

@@ -84,9 +84,24 @@ export const socialImageAlt = `${site.name} — ${site.tagline}. Canadian cybers
 /** Second address line, e.g. "Toronto, Ontario, Canada M5V 2Y1". */
 export const addressCityLine = `${site.address.locality}, ${site.address.region}, ${site.address.country} ${site.address.postalCode}`
 
-export const navLinks = [
-  { label: "Services", href: "/#services" },
+export interface NavLink {
+  label: string
+  href: string
+  /** Pages grouped under this item in a dropdown (desktop) or an indented list (mobile). */
+  children?: readonly { label: string; href: string }[]
+}
+
+export const navLinks: readonly NavLink[] = [
+  {
+    label: "Services",
+    href: "/#services",
+    children: [
+      { label: "All services", href: "/#services" },
+      { label: "VAPT", href: "/vapt" },
+      { label: "Incident Response", href: "/incident-response" },
+    ],
+  },
   { label: "Capabilities", href: "/#capabilities" },
   { label: "Why Crimson", href: "/#why-crimson" },
   { label: "Contact", href: "/#contact" },
-] as const
+]

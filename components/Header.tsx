@@ -3,7 +3,7 @@
 import Image from "next/image"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Menu, X } from "lucide-react"
+import { ChevronDown, Menu, X } from "lucide-react"
 import { useEffect, useState } from "react"
 import { navLinks } from "@/lib/site"
 
@@ -60,15 +60,45 @@ export default function Header() {
             aria-label="Primary"
             className="hidden items-center gap-8 md:flex"
           >
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="font-display text-sm font-medium tracking-wide text-silver-300 transition-colors hover:text-silver-50"
-              >
-                {link.label}
-              </Link>
-            ))}
+            {navLinks.map((link) =>
+              link.children ? (
+                <div key={link.label} className="group relative">
+                  <Link
+                    href={link.href}
+                    className="inline-flex items-center gap-1 font-display text-sm font-medium tracking-wide text-silver-300 transition-colors hover:text-silver-50 group-focus-within:text-silver-50"
+                  >
+                    {link.label}
+                    <ChevronDown
+                      aria-hidden="true"
+                      className="h-3.5 w-3.5 transition-transform duration-200 group-hover:rotate-180 group-focus-within:rotate-180"
+                    />
+                  </Link>
+                  {/* pt-3 bridges the gap so the menu stays open while the pointer travels to it */}
+                  <div className="invisible absolute left-1/2 top-full -translate-x-1/2 pt-3 opacity-0 transition-opacity duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
+                    <ul className="theme-light min-w-52 rounded-xl border border-edge/10 bg-ink-900 p-2 shadow-card-sm">
+                      {link.children.map((child) => (
+                        <li key={child.href}>
+                          <Link
+                            href={child.href}
+                            className="block rounded-lg px-3 py-2 font-display text-sm font-medium text-silver-300 transition-colors hover:bg-edge/5 hover:text-silver-50"
+                          >
+                            {child.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+              ) : (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className="font-display text-sm font-medium tracking-wide text-silver-300 transition-colors hover:text-silver-50"
+                >
+                  {link.label}
+                </Link>
+              ),
+            )}
           </nav>
 
           <button
@@ -91,14 +121,29 @@ export default function Header() {
           >
             <ul className="flex flex-col">
               {navLinks.map((link) => (
-                <li key={link.href}>
+                <li key={link.href} className="border-b border-edge/5">
                   <Link
                     href={link.href}
                     onClick={() => setOpen(false)}
-                    className="block border-b border-edge/5 py-4 font-display text-lg font-medium text-silver-100"
+                    className="block py-4 font-display text-lg font-medium text-silver-100"
                   >
                     {link.label}
                   </Link>
+                  {link.children && (
+                    <ul className="-mt-2 mb-3 ml-3 border-l border-edge/10 pl-4">
+                      {link.children.slice(1).map((child) => (
+                        <li key={child.href}>
+                          <Link
+                            href={child.href}
+                            onClick={() => setOpen(false)}
+                            className="block py-2.5 font-display text-base font-medium text-silver-300"
+                          >
+                            {child.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </li>
               ))}
             </ul>
