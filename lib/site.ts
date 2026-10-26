@@ -93,8 +93,8 @@ export interface NavLink {
 
 export const navLinks: readonly NavLink[] = [
   {
-    label: "Services",
-    href: "/#services",
+    label: "Resources",
+    href: "/resources",
     children: [
       { label: "All services", href: "/#services" },
       { label: "VAPT", href: "/vapt" },

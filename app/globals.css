@@ -234,3 +234,44 @@
 .hover-lift:hover {
   transform: translate3d(0, -6px, 0);
 }
+
+@layer components {
+  /* Long-form article body (resources posts). */
+  .post-prose {
+    @apply text-base leading-8 text-silver-300;
+  }
+  .post-prose h2 {
+    @apply mt-12 scroll-mt-28 font-display text-2xl font-bold text-silver-50;
+  }
+  .post-prose h3 {
+    @apply mt-8 font-display text-lg font-semibold text-silver-50;
+  }
+  .post-prose p,
+  .post-prose ul,
+  .post-prose table {
+    @apply mt-4;
+  }
+  .post-prose strong {
+    @apply font-semibold text-silver-100;
+  }
+  .post-prose a {
+    @apply text-crimson-300 underline underline-offset-2 hover:text-silver-50;
+  }
+  .post-prose ul {
+    @apply list-disc space-y-2 pl-6;
+  }
+  .post-prose table {
+    @apply block w-full overflow-x-auto border-collapse text-sm sm:table;
+  }
+  .post-prose th,
+  .post-prose td {
+    @apply border border-edge/10 px-3 py-2 text-left align-top;
+  }
+  .post-prose th {
+    @apply bg-edge/5 font-display font-semibold text-silver-100;
+  }
+  .post-prose td p,
+  .post-prose th p {
+    @apply mt-0;
+  }
+}
