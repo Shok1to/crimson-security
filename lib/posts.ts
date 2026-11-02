@@ -51,6 +51,18 @@ export function getPosts(): Post[] {
   return [
     loadPost(
       {
+        slug: 'cybersecurity-for-firms-of-all-sizes',
+        title: 'The "Too Small to Target" Myth: Why Modern Cyber Resilience Demands Experience Over Metered Billings',
+        description:
+          'Automated cyber threats do not evaluate your payroll or market cap. Discover how Canadian businesses of all sizes build resilient security postures with dedicated auditor oversight and predictable costs.',
+        author: 'Brianna Morissette',
+        authorImage: '/authors/brianna.jpg',
+        updated: '2026-11-02',
+      },
+      'too-small-to-target.html',
+    ),
+    loadPost(
+      {
         slug: 'why-cybersecurity-must-move-from-the-server-room-to-the-boardroom',
         title: 'The Executive Imperative: Why Cybersecurity Must Move from the Server Room to the Boardroom',
         description:

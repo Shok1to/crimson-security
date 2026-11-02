@@ -1,133 +1,60 @@
-import type { Metadata } from 'next';
-import Image from 'next/image';
+import { BookOpen, BriefcaseBusiness, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
-import { ArrowRight, ScanSearch, Siren } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import Reveal from '@/components/Reveal';
-import { formatPostDate, getPosts } from '@/lib/posts';
-import { site, socialImageAlt } from '@/lib/site';
+import ResourcesHeader from '@/components/ResourcesHeader';
+import { resourceMetadata } from '@/lib/resources';
 
 const TITLE = 'Resources';
 const DESCRIPTION =
-  'Explore Crimson Security service guides: vulnerability assessment and penetration testing (VAPT), and incident response.';
+  'Crimson Security blog articles, service guides and case studies on compliance, penetration testing and incident response.';
 
-export const metadata: Metadata = {
-  title: TITLE,
-  description: DESCRIPTION,
-  alternates: { canonical: '/resources' },
-  // Restated in full: Next merges openGraph/twitter per key (see app/privacy/page.tsx).
-  openGraph: {
-    type: 'website',
-    locale: 'en_CA',
-    siteName: site.name,
-    title: `${TITLE} | ${site.name}`,
-    description: DESCRIPTION,
-    url: '/resources',
-    images: [{ url: '/opengraph-image.png', width: 1200, height: 630, alt: socialImageAlt }],
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: `${TITLE} | ${site.name}`,
-    description: DESCRIPTION,
-    images: [{ url: '/twitter-image.png', width: 1200, height: 630, alt: socialImageAlt }],
-  },
-};
+export const metadata = resourceMetadata(TITLE, DESCRIPTION, '/resources');
 
-const cards = [
+const sections = [
   {
-    icon: ScanSearch,
-    href: '/vapt',
-    label: 'VAPT',
-    title: 'Vulnerability Assessment & Penetration Testing',
-    body: 'Quarterly vulnerability assessments and annual internal and external penetration testing to harden your infrastructure before adversaries strike.',
+    icon: BookOpen,
+    href: '/resources/blog',
+    label: 'Blog',
+    body: 'Insights on compliance, penetration testing and incident response for Canadian organizations.',
   },
   {
-    icon: Siren,
-    href: '/incident-response',
-    label: 'Incident Response',
-    title: 'Incident Management & Tactical Response',
-    body: 'Rapid triage, containment and recovery support, plus forensic analysis, to minimize downtime and protect critical assets.',
+    icon: ShieldCheck,
+    href: '/resources/services',
+    label: 'Services',
+    body: 'Guides to our VAPT and incident response services and how they work.',
+  },
+  {
+    icon: BriefcaseBusiness,
+    href: '/resources/case-studies',
+    label: 'Case Studies',
+    body: 'Real results from the organizations we have worked with.',
   },
 ];
 
 export default function ResourcesPage() {
-  const items = cards;
-  const posts = getPosts();
-
   return (
     <div className="theme-light bg-ink-900">
-      <header className="mx-auto max-w-7xl px-5 pb-10 pt-36 sm:px-8">
-        <nav aria-label="Breadcrumb" className="text-base text-silver-400">
-          <Link href="/" className="transition-colors hover:text-silver-50">
-            Home
-          </Link>
-          <span aria-hidden="true" className="mx-2.5">
-            ›
-          </span>
-          <span aria-current="page" className="font-medium text-silver-100">Resources</span>
-        </nav>
-        <h1 className="mt-6 font-display text-4xl font-bold tracking-tight text-silver-50 sm:text-5xl lg:text-6xl">
-          Resources
-        </h1>
-        <p className="mt-4 max-w-2xl text-base text-silver-300 sm:text-lg">
-          Learn how Crimson Security helps Canadian organizations find the gaps and respond when it counts.
-        </p>
-      </header>
+      <ResourcesHeader
+        title={TITLE}
+        intro="Learn how Crimson Security helps Canadian organizations find the gaps and respond when it counts."
+      />
 
       <section className="mx-auto max-w-7xl px-5 pb-24 sm:px-8">
-        <ul className="grid gap-6 md:grid-cols-2">
-          {items.map((card, i) => (
-            <Reveal as="li" key={card.href} delay={i * 0.08}>
+        <ul className="grid gap-6 md:grid-cols-3">
+          {sections.map((s, i) => (
+            <Reveal as="li" key={s.href} delay={i * 0.08}>
               <Link
-                href={card.href}
+                href={s.href}
                 className="group flex h-full flex-col rounded-2xl border border-edge/10 bg-ink-800 p-7 shadow-card-sm transition-colors hover:border-crimson-500/50"
               >
-                <div className="flex items-center gap-3">
-                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-crimson-600/15 text-crimson-500">
-                    <card.icon className="h-5 w-5" aria-hidden="true" />
-                  </span>
-                  <span className="font-display text-sm font-semibold text-silver-100">{card.label}</span>
-                </div>
-                <h2 className="mt-6 font-display text-xl font-semibold leading-snug text-silver-50 text-balance">
-                  {card.title}
-                </h2>
-                <p className="mt-3 text-sm leading-relaxed text-silver-300">{card.body}</p>
-                <span className="mt-auto inline-flex items-center gap-2 pt-6 font-display text-sm font-semibold text-silver-300 transition-colors group-hover:text-silver-50">
-                  Read more
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
+                <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-crimson-600/15 text-crimson-500">
+                  <s.icon className="h-5 w-5" aria-hidden="true" />
                 </span>
-              </Link>
-            </Reveal>
-          ))}
-        </ul>
-
-        <ul className="mt-6 grid gap-6 md:grid-cols-2">
-          {posts.map((post, i) => (
-            <Reveal as="li" key={post.slug} delay={i * 0.08}>
-              <Link
-                href={`/resources/${post.slug}`}
-                className="group flex h-full flex-col rounded-2xl border border-edge/10 bg-ink-800 p-7 shadow-card-sm transition-colors hover:border-crimson-500/50"
-              >
-                <div className="flex items-center justify-between gap-4 text-sm text-silver-400">
-                  <span className="flex items-center gap-3">
-                    <Image
-                      src={post.authorImage}
-                      alt=""
-                      width={32}
-                      height={32}
-                      className="h-8 w-8 rounded-full object-cover"
-                    />
-                    <span className="font-medium text-silver-200">{post.author}</span>
-                  </span>
-                  <span>
-                    {formatPostDate(post.updated)} <span aria-hidden="true">/</span> {post.readMinutes} min read
-                  </span>
-                </div>
-                <h2 className="mt-6 font-display text-xl font-semibold leading-snug text-silver-50 text-balance">
-                  {post.title}
-                </h2>
-                <p className="mt-3 text-sm leading-relaxed text-silver-300">{post.description}</p>
+                <h2 className="mt-6 font-display text-xl font-semibold text-silver-50">{s.label}</h2>
+                <p className="mt-3 text-sm leading-relaxed text-silver-300">{s.body}</p>
                 <span className="mt-auto inline-flex items-center gap-2 pt-6 font-display text-sm font-semibold text-silver-300 transition-colors group-hover:text-silver-50">
-                  Read more
+                  Explore
                   <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" aria-hidden="true" />
                 </span>
               </Link>

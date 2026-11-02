@@ -251,6 +251,9 @@
   .post-prose table {
     @apply mt-4;
   }
+  .post-prose img {
+    @apply mt-8 h-auto w-full rounded-xl border border-edge/10;
+  }
   .post-prose strong {
     @apply font-semibold text-silver-100;
   }

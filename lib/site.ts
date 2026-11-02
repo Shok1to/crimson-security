@@ -1,3 +1,5 @@
+import { BarChart3, BookOpen, ShieldCheck, type LucideIcon } from "lucide-react"
+
 /**
  * The production domain, and the same property as the info@ address below.
  *
@@ -84,15 +86,45 @@ export const socialImageAlt = `${site.name} — ${site.tagline}. Canadian cybers
 /** Second address line, e.g. "Toronto, Ontario, Canada M5V 2Y1". */
 export const addressCityLine = `${site.address.locality}, ${site.address.region}, ${site.address.country} ${site.address.postalCode}`
 
+export interface NavChild {
+  label: string
+  href: string
+  description: string
+  icon: LucideIcon
+}
+
 export interface NavLink {
   label: string
   href: string
   /** Pages grouped under this item in a dropdown (desktop) or an indented list (mobile). */
-  children?: readonly { label: string; href: string }[]
+  children?: readonly NavChild[]
 }
 
 export const navLinks: readonly NavLink[] = [
-  { label: "Resources", href: "/resources" },
+  {
+    label: "Resources",
+    href: "/resources",
+    children: [
+      {
+        label: "Blog",
+        href: "/resources/blog",
+        description: "Insights on compliance, testing and incident response.",
+        icon: BookOpen,
+      },
+      {
+        label: "Services",
+        href: "/resources/services",
+        description: "Guides to our VAPT and incident response services.",
+        icon: ShieldCheck,
+      },
+      {
+        label: "Case Studies",
+        href: "/resources/case-studies",
+        description: "Real results from real customers.",
+        icon: BarChart3,
+      },
+    ],
+  },
   { label: "Capabilities", href: "/#capabilities" },
   { label: "Why Crimson", href: "/#why-crimson" },
   { label: "Contact", href: "/#contact" },

@@ -75,18 +75,33 @@ export default function Header() {
                   </Link>
                   {/* pt-3 bridges the gap so the menu stays open while the pointer travels to it */}
                   <div className="invisible absolute left-1/2 top-full -translate-x-1/2 pt-3 opacity-0 transition-opacity duration-150 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
-                    <ul className="theme-light min-w-52 rounded-xl border border-edge/10 bg-ink-900 p-2 shadow-card-sm">
-                      {link.children.map((child) => (
-                        <li key={child.href}>
-                          <Link
-                            href={child.href}
-                            className="block rounded-lg px-3 py-2 font-display text-sm font-medium text-silver-300 transition-colors hover:bg-edge/5 hover:text-silver-50"
-                          >
-                            {child.label}
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
+                    <div className="theme-light w-[34rem] rounded-2xl border border-edge/10 bg-ink-900 p-5 shadow-card-sm">
+                      <p className="px-3 pb-3 font-display text-xs font-semibold uppercase tracking-[0.2em] text-silver-400">
+                        {link.label}
+                      </p>
+                      <ul className="grid grid-cols-2 gap-1">
+                        {link.children.map((child) => (
+                          <li key={child.href}>
+                            <Link
+                              href={child.href}
+                              className="group/item flex items-start gap-3 rounded-xl p-3 transition-colors hover:bg-edge/5"
+                            >
+                              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-edge/10 bg-crimson-600/10 text-crimson-500 transition-colors group-hover/item:border-crimson-500/40">
+                                <child.icon className="h-[18px] w-[18px]" aria-hidden="true" />
+                              </span>
+                              <span>
+                                <span className="block font-display text-sm font-semibold text-silver-50">
+                                  {child.label}
+                                </span>
+                                <span className="mt-0.5 block text-sm leading-snug text-silver-400">
+                                  {child.description}
+                                </span>
+                              </span>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -131,7 +146,7 @@ export default function Header() {
                   </Link>
                   {link.children && (
                     <ul className="-mt-2 mb-3 ml-3 border-l border-edge/10 pl-4">
-                      {link.children.slice(1).map((child) => (
+                      {link.children.map((child) => (
                         <li key={child.href}>
                           <Link
                             href={child.href}

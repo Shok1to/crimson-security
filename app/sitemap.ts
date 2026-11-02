@@ -9,6 +9,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
     { url: `${site.url}/privacy`, lastModified: now, changeFrequency: 'yearly', priority: 0.3 },
     { url: `${site.url}/incident-response`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     { url: `${site.url}/resources`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${site.url}/resources/blog`, lastModified: now, changeFrequency: 'weekly', priority: 0.6 },
+    { url: `${site.url}/resources/services`, lastModified: now, changeFrequency: 'monthly', priority: 0.6 },
+    { url: `${site.url}/resources/case-studies`, lastModified: now, changeFrequency: 'monthly', priority: 0.4 },
     { url: `${site.url}/vapt`, lastModified: now, changeFrequency: 'monthly', priority: 0.7 },
     ...getPosts().map((p) => ({
       url: `${site.url}/resources/${p.slug}`,

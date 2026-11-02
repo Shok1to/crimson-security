@@ -52,11 +52,11 @@ export default function ResourcePostPage({ params }: PageProps) {
     <div className="theme-light bg-ink-900">
       <div className="mx-auto max-w-6xl px-5 pb-24 pt-32 sm:px-8">
         <Link
-          href="/resources"
+          href="/resources/blog"
           className="inline-flex items-center gap-2 text-sm text-silver-400 transition-colors hover:text-silver-50"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Back to Resources
+          Back to Blog
         </Link>
 
         <h1 className="mt-6 max-w-4xl font-display text-3xl font-bold leading-tight tracking-tight text-silver-50 text-balance sm:text-4xl lg:text-5xl">
