@@ -51,6 +51,18 @@ export function getPosts(): Post[] {
   return [
     loadPost(
       {
+        slug: 'why-cybersecurity-must-move-from-the-server-room-to-the-boardroom',
+        title: 'The Executive Imperative: Why Cybersecurity Must Move from the Server Room to the Boardroom',
+        description:
+          'Why cybersecurity is now an existential business risk, what a breach really costs, and the three executive mandates every C-suite and Board should act on today.',
+        author: 'Richard Bangyay',
+        authorImage: '/authors/richard.webp',
+        updated: '2026-11-02',
+      },
+      'executive-cybersecurity-imperative.html',
+    ),
+    loadPost(
+      {
         slug: 'how-to-prepare-for-your-first-soc-2-audit',
         title: 'How to Prepare for Your First SOC 2 Audit',
         description:
