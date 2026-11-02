@@ -1,4 +1,4 @@
-import { BookOpen, BriefcaseBusiness, ShieldCheck } from 'lucide-react';
+import { BookOpen, BriefcaseBusiness, PlayCircle, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import Reveal from '@/components/Reveal';
@@ -7,7 +7,7 @@ import { resourceMetadata } from '@/lib/resources';
 
 const TITLE = 'Resources';
 const DESCRIPTION =
-  'Crimson Security blog articles, service guides and case studies on compliance, penetration testing and incident response.';
+  'Crimson Security blog articles, service guides, videos and case studies on compliance, penetration testing and incident response.';
 
 export const metadata = resourceMetadata(TITLE, DESCRIPTION, '/resources');
 
@@ -23,6 +23,12 @@ const sections = [
     href: '/resources/services',
     label: 'Services',
     body: 'Guides to our VAPT and incident response services and how they work.',
+  },
+  {
+    icon: PlayCircle,
+    href: '/resources/videos',
+    label: 'Videos',
+    body: 'Watch Crimson Security Canada explain who we are and how we help.',
   },
   {
     icon: BriefcaseBusiness,
@@ -41,7 +47,7 @@ export default function ResourcesPage() {
       />
 
       <section className="mx-auto max-w-7xl px-5 pb-24 sm:px-8">
-        <ul className="grid gap-6 md:grid-cols-3">
+        <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           {sections.map((s, i) => (
             <Reveal as="li" key={s.href} delay={i * 0.08}>
               <Link

@@ -1,4 +1,4 @@
-import { BarChart3, BookOpen, ShieldCheck, type LucideIcon } from "lucide-react"
+import { BarChart3, BookOpen, PlayCircle, ShieldCheck, type LucideIcon } from "lucide-react"
 
 /**
  * The production domain, and the same property as the info@ address below.
@@ -116,6 +116,12 @@ export const navLinks: readonly NavLink[] = [
         href: "/resources/services",
         description: "Guides to our VAPT and incident response services.",
         icon: ShieldCheck,
+      },
+      {
+        label: "Videos",
+        href: "/resources/videos",
+        description: "Watch Crimson Security Canada in action.",
+        icon: PlayCircle,
       },
       {
         label: "Case Studies",
