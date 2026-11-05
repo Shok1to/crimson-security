@@ -67,7 +67,7 @@ export const site = {
   regions: [
     {
       name: "Crimson USA",
-      website: "https://crimson-security-us.vercel.app/",
+      website: "https://crimsonsecurityinc.com/",
       facebook: "https://www.facebook.com/profile.php?id=61596116873193",
       instagram: "https://www.instagram.com/crimsonsecurityinc.us/",
     },
