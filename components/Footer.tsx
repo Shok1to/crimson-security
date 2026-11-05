@@ -2,6 +2,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { services } from "@/lib/content"
 import { addressCityLine, site } from "@/lib/site"
+import FooterRegions from "./FooterRegions"
 import MapleLeaf from "./MapleLeaf"
 
 const company = [
@@ -43,14 +44,7 @@ export default function Footer() {
             <h2 className="mt-8 font-display text-xs font-semibold uppercase tracking-[0.25em] text-silver-200">
               Locations
             </h2>
-            <ul className="mt-4 space-y-2.5 text-sm text-silver-400">
-              {site.locations.map((place) => (
-                <li key={place} className="flex items-center gap-2.5">
-                  <MapleLeaf className="h-3 w-3 shrink-0 text-crimson-400" />
-                  {place}
-                </li>
-              ))}
-            </ul>
+            <FooterRegions />
           </div>
 
           <nav aria-label="Services">

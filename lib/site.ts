@@ -63,6 +63,31 @@ export const site = {
     countryCode: "CA",
     postalCode: "M5V 2Y1",
   },
+  /** Regional offices and their public profiles, shown in the footer. */
+  regions: [
+    {
+      name: "Crimson USA",
+      website: "https://crimson-security-us.vercel.app/",
+      facebook: "https://www.facebook.com/profile.php?id=61596116873193",
+      instagram: "https://www.instagram.com/crimsonsecurityinc.us/",
+    },
+    {
+      name: "Crimson Canada",
+      website: "https://www.crimsonsecurityinc.ca",
+      facebook: "https://www.facebook.com/profile.php?id=61594714168904",
+      instagram: "https://www.instagram.com/crimsonsecurityinc.ca/",
+    },
+    {
+      name: "Crimson Europe",
+      facebook: "https://www.facebook.com/profile.php?id=61596344366235",
+      instagram: "https://www.instagram.com/crimsonsecurityinc.europe/",
+    },
+    {
+      name: "Crimson Africa",
+      facebook: "https://www.facebook.com/profile.php?id=61596249210281",
+      instagram: "https://www.instagram.com/crimsonsecurityinc.africa/",
+    },
+  ],
   locations: [
     "Virginia, USA",
     "Reykjavik, Iceland",
